@@ -51,14 +51,14 @@ class AppSidebar extends StatelessWidget {
                 },
               ),
             ),
-          ),
+          ),         
           // Divider
           Divider(
             height: 1,
             thickness: 1,
             color: Colors.green[800],
           ),
-
+          
           // Navigation links
           Expanded(
             child: ListView(
@@ -69,17 +69,17 @@ class AppSidebar extends StatelessWidget {
                   context,
                   'Dashboard',
                   Icons.dashboard,
-                  AppRoutes.home,
-                  currentRoute == AppRoutes.home,
+                  '/',
+                  currentRoute == '/',
                 ),
-
+                
                 // Orders
                 _buildNavGroup(
                   'Orders',
                   [
                     _buildNavItem(
                       context,
-                      'Create New Order',
+                      'Create New Sale',
                       Icons.add_circle_outline,
                       AppRoutes.newOrder,
                       currentRoute == AppRoutes.newOrder,
@@ -93,7 +93,7 @@ class AppSidebar extends StatelessWidget {
                     ),
                   ],
                 ),
-
+                
                 // Finance
                 _buildNavGroup(
                   'Finance',
@@ -114,36 +114,22 @@ class AppSidebar extends StatelessWidget {
                     ),
                   ],
                 ),
-
-                // Inventory
-                _buildNavGroup(
-                  'Inventory',
-                  [
-                    _buildNavItem(
-                      context,
-                      'Inventory Items',
-                      Icons.inventory_2,
-                      AppRoutes.inventoryItems,
-                      currentRoute == AppRoutes.inventoryItems,
-                    ),
-                    _buildNavItem(
-                      context,
-                      'Purchase Items',
-                      Icons.shopping_cart,
-                      AppRoutes.purchaseItems,
-                      currentRoute == AppRoutes.purchaseItems,
-                    ),
-                    _buildNavItem(
-                      context,
-                      'Stock Purchase History',
-                      Icons.history,
-                      AppRoutes.stockPurchaseHistory,
-                      currentRoute == AppRoutes.stockPurchaseHistory,
-                    ),
-                  ],
-                ),
-
+                
                 // Other menu items
+                _buildNavItem(
+                  context,
+                  'Inventory Items',
+                  Icons.inventory_2,
+                  AppRoutes.inventoryItems,
+                  currentRoute == AppRoutes.inventoryItems,
+                ),
+                _buildNavItem(
+                  context,
+                  'Purchase Items',
+                  Icons.shopping_cart,
+                  AppRoutes.purchaseItems,
+                  currentRoute == AppRoutes.purchaseItems,
+                ),
                 _buildNavItem(
                   context,
                   'Vendors',
@@ -160,13 +146,6 @@ class AppSidebar extends StatelessWidget {
                 ),
                 _buildNavItem(
                   context,
-                  'Transactions',
-                  Icons.receipt_long,
-                  AppRoutes.transactions,
-                  currentRoute == AppRoutes.transactions,
-                ),
-                _buildNavItem(
-                  context,
                   'Settings',
                   Icons.settings,
                   AppRoutes.settings,
@@ -175,7 +154,7 @@ class AppSidebar extends StatelessWidget {
               ],
             ),
           ),
-
+          
           // User section at bottom
           Container(
             padding: const EdgeInsets.all(16),
@@ -204,7 +183,7 @@ class AppSidebar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-
+                
                 // User info
                 Expanded(
                   child: Column(
@@ -227,7 +206,7 @@ class AppSidebar extends StatelessWidget {
                     ],
                   ),
                 ),
-
+                
                 // Logout button
                 IconButton(
                   icon: const Icon(
@@ -247,7 +226,7 @@ class AppSidebar extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildNavItem(
     BuildContext context,
     String title,
@@ -295,7 +274,7 @@ class AppSidebar extends StatelessWidget {
       ),
     );
   }
-
+  
   Widget _buildNavGroup(String title, List<Widget> items) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

@@ -33,6 +33,10 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Windows Flutter build files
+windows/flutter/ephemeral/
+*.pdb
+
 # Symbolication related
 app.*.symbols
 
