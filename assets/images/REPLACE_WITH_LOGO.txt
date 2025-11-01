@@ -1,0 +1,10 @@
+REPLACE THIS FILE WITH YOUR ACTUAL NEXORA LOGO
+
+Instructions:
+1. Delete this file
+2. Place your actual logo image here
+3. Name it exactly: nexora_white_2.png
+4. Supported formats: PNG (recommended), JPG, JPEG, WebP
+5. Recommended size: 120x120 pixels or larger
+
+The logo will appear in the splash screen center.

@@ -1,0 +1,347 @@
+# Code Citations
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow:
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow:
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2
+```
+
+
+## License: unknown
+https://github.com/mouhamedjouini/crud_book/blob/af35084c83ec3ae6252c1b946334582e5b18caf6/lib/mapanier.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+```
+
+
+## License: unknown
+https://github.com/AloysiusChua0822/ElderlyHomecare/blob/df685df2efebb0f81652e68abaf6c700f13199c4/lib/screens/profile.dart
+
+```
+(
+    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    padding: EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+```
+
