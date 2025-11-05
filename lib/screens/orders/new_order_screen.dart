@@ -369,6 +369,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     final currentStockFocus = FocusNode();
     final unitCostFocus = FocusNode();
     final sellingPriceFocus = FocusNode();
+    
+    // Form key for validation
+    final formKey = GlobalKey<FormState>();
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -383,6 +386,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
             padding: const EdgeInsets.all(24),
             child: Form(
+              key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,40 +567,46 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () async {
-                          // Validate form
-                          if (nameController.text.trim().isEmpty ||
-                              currentStockController.text.trim().isEmpty ||
-                              sellingPriceController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please fill in all required fields'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                          // Validate form using the form key
+                          if (!formKey.currentState!.validate()) {
                             return;
                           }
                           
-                          if (double.tryParse(currentStockController.text) == null ||
-                              double.tryParse(sellingPriceController.text) == null) {
+                          try {
+                            // Parse values safely
+                            final currentStock = double.tryParse(currentStockController.text.trim()) ?? 0.0;
+                            final unitCost = double.tryParse(unitCostController.text.trim()) ?? 0.0;
+                            final sellingPrice = double.tryParse(sellingPriceController.text.trim()) ?? 0.0;
+                            
+                            if (currentStock <= 0 || sellingPrice <= 0) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Stock and selling price must be greater than 0'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                            
+                            // Create item data
+                            final itemData = {
+                              'name': nameController.text.trim(),
+                              'category': categoryController.text.trim(),
+                              'currentStock': currentStock,
+                              'unitCost': unitCost,
+                              'sellingPrice': sellingPrice,
+                            };
+                            
+                            Navigator.of(context).pop(itemData);
+                          } catch (e) {
+                            debugPrint('Error creating item data: $e');
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter valid numbers'),
+                              SnackBar(
+                                content: Text('Error creating item: ${e.toString()}'),
                                 backgroundColor: Colors.red,
                               ),
                             );
-                            return;
                           }
-                          
-                          // Create item data
-                          final itemData = {
-                            'name': nameController.text.trim(),
-                            'category': categoryController.text.trim(),
-                            'currentStock': double.parse(currentStockController.text),
-                            'unitCost': double.tryParse(unitCostController.text) ?? 0.0,
-                            'sellingPrice': double.parse(sellingPriceController.text),
-                          };
-                          
-                          Navigator.of(context).pop(itemData);
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue[600],
@@ -640,16 +650,19 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   // Add the new item to inventory and then select it in the order
   Future<void> _addNewItemToInventory(Map<String, dynamic> itemData, int orderItemIndex) async {
     try {
+      debugPrint('🔄 Adding new item to inventory: ${itemData['name']}');
+      
       // Generate the next item ID
       final nextItemId = _generateNextItemId();
+      debugPrint('📝 Generated item ID: $nextItemId');
       
       final fullItemData = {
         'id': nextItemId,
-        'name': itemData['name'],
-        'category': itemData['category'],
-        'currentStock': itemData['currentStock'],
-        'unitCost': itemData['unitCost'],
-        'sellingPrice': itemData['sellingPrice'],
+        'name': itemData['name']?.toString() ?? '',
+        'category': itemData['category']?.toString() ?? '',
+        'currentStock': (itemData['currentStock'] as num?)?.toDouble() ?? 0.0,
+        'unitCost': (itemData['unitCost'] as num?)?.toDouble() ?? 0.0,
+        'sellingPrice': (itemData['sellingPrice'] as num?)?.toDouble() ?? 0.0,
         'unit': 'pcs',
         'minimumStock': 5.0,
         'maximumStock': 100.0,
@@ -664,6 +677,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         'lastUpdated': DateTime.now().toIso8601String(),
       };
 
+      debugPrint('💾 Saving item to Excel: $fullItemData');
       final success = await _excelService.saveInventoryItemToExcel(fullItemData);
       
       if (success) {
@@ -733,25 +747,37 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   // Generate next item ID (similar to inventory items screen)
   String _generateNextItemId() {
-    if (_inventoryItems.isEmpty) {
-      return 'ITEM001';
-    }
-    
-    // Extract numeric parts from existing IDs and find the highest
-    int maxNumber = 0;
-    for (final item in _inventoryItems) {
-      final id = item['id'].toString();
-      final match = RegExp(r'ITEM(\d+)').firstMatch(id);
-      if (match != null) {
-        final number = int.tryParse(match.group(1)!) ?? 0;
-        if (number > maxNumber) {
-          maxNumber = number;
+    try {
+      if (_inventoryItems.isEmpty) {
+        debugPrint('📋 No existing items, starting with ITEM001');
+        return 'ITEM001';
+      }
+      
+      // Extract numeric parts from existing IDs and find the highest
+      int maxNumber = 0;
+      for (final item in _inventoryItems) {
+        if (item['id'] == null) continue;
+        
+        final id = item['id'].toString();
+        final match = RegExp(r'ITEM(\d+)').firstMatch(id);
+        if (match != null) {
+          final number = int.tryParse(match.group(1)!) ?? 0;
+          if (number > maxNumber) {
+            maxNumber = number;
+          }
         }
       }
+      
+      final nextNumber = maxNumber + 1;
+      final nextId = 'ITEM${nextNumber.toString().padLeft(3, '0')}';
+      debugPrint('🔢 Generated next item ID: $nextId (max found: $maxNumber)');
+      return nextId;
+    } catch (e) {
+      debugPrint('❌ Error generating item ID: $e');
+      // Fallback to timestamp-based ID
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      return 'ITEM_$timestamp';
     }
-    
-    final nextNumber = maxNumber + 1;
-    return 'ITEM${nextNumber.toString().padLeft(3, '0')}';
   }
 
   // Updated payment dialog with toggle functionality

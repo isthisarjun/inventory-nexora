@@ -1189,57 +1189,254 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
   }
 
   void _showItemDetails(Map<String, dynamic> item) {
+    final currentStock = int.tryParse(item['currentStock']?.toString() ?? '0') ?? 0;
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(item['name'] ?? 'Item Details'),
-        content: SingleChildScrollView(
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 10,
+        child: Container(
+          width: 400,
+          constraints: const BoxConstraints(maxHeight: 600),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Color(0xFFF8FFF8)],
+            ),
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDetailRow('ID', item['id']),
-              _buildDetailRow('Category', item['category']),
-              _buildDetailRow('Current Stock', '${item['currentStock']} ${item['unit']}'),
-              _buildDetailRow('Minimum Stock', '${item['minimumStock']} ${item['unit']}'),
-              _buildDetailRow('Unit Cost', 'BHD ${item['unitCost']?.toStringAsFixed(3)}'),
-              _buildDetailRow('Selling Price', 'BHD ${item['sellingPrice']?.toStringAsFixed(3)}'),
-              _buildDetailRow('Status', item['status']),
-              _buildDetailRow('Date Added', item['dateAdded']),
-              _buildDetailRow('Description', item['description']),
-              _buildDetailRow('Supplier', item['supplier']),
-              _buildDetailRow('Location', item['location']),
+              // Header with gradient
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.inventory_2,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item['name'] ?? 'Item Details',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              Icon(
+                                _getStockStatusIcon(currentStock),
+                                color: Colors.white70,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _getStockStatusText(currentStock),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Content
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Basic Information Section
+                      _buildModernSection(
+                        'Basic Information',
+                        Icons.info_outline,
+                        [
+                          _buildModernDetailRow('ID', item['id']?.toString() ?? 'N/A', Icons.tag),
+                          _buildModernDetailRow('Category', item['category']?.toString() ?? 'N/A', Icons.category),
+                          _buildModernDetailRow('Status', item['status']?.toString() ?? 'N/A', Icons.check_circle),
+                          _buildModernDetailRow('Date Added', item['dateAdded']?.toString() ?? 'N/A', Icons.calendar_today),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Pricing Section
+                      _buildModernSection(
+                        'Pricing',
+                        Icons.monetization_on,
+                        [
+                          _buildModernDetailRow('Unit Cost', 'BHD ${item['unitCost']?.toStringAsFixed(3) ?? '0.000'}', Icons.shopping_cart),
+                          _buildModernDetailRow('Selling Price', 'BHD ${item['sellingPrice']?.toStringAsFixed(3) ?? '0.000'}', Icons.sell),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Stock Information Section
+                      _buildModernSection(
+                        'Stock Information',
+                        Icons.inventory,
+                        [
+                          _buildModernDetailRow('Current Stock', '${item['currentStock'] ?? '0'} ${item['unit'] ?? ''}', Icons.inventory_2, 
+                            valueColor: _getStockStatusColor(currentStock)),
+                          _buildModernDetailRow('Minimum Stock', '${item['minimumStock'] ?? '0'} ${item['unit'] ?? ''}', Icons.warning),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // Location & Supplier Section
+                      _buildModernSection(
+                        'Additional Details',
+                        Icons.business,
+                        [
+                          _buildModernDetailRow('Supplier', item['supplier']?.toString() ?? 'N/A', Icons.business),
+                          _buildModernDetailRow('Location', item['location']?.toString() ?? 'N/A', Icons.location_on),
+                        ],
+                      ),
+                      
+                      if (item['description']?.toString().isNotEmpty == true) ...[
+                        const SizedBox(height: 20),
+                        _buildModernSection(
+                          'Description',
+                          Icons.description,
+                          [
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE0E0E0)),
+                              ),
+                              child: Text(
+                                item['description']?.toString() ?? 'N/A',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  height: 1.4,
+                                  color: Color(0xFF424242),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Action Buttons
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAFA),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.close),
+                        label: const Text('Close'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: Color(0xFF757575)),
+                          foregroundColor: const Color(0xFF757575),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _showEditItemDialog(item);
+                        },
+                        icon: const Icon(Icons.edit),
+                        label: const Text('Edit'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF4CAF50),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _showDeleteConfirmationDialog(item);
+                        },
+                        icon: const Icon(Icons.delete),
+                        label: const Text('Delete'),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFFE57373),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showEditItemDialog(item);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Edit Item'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showDeleteConfirmationDialog(item);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
       ),
     );
   }
@@ -1267,470 +1464,526 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setEditDialogState) => AlertDialog(
-        title: Row(
-          children: [
-            const Icon(Icons.edit, color: Colors.blue),
-            const SizedBox(width: 8),
-            Expanded(child: Text('Edit ${item['name']}')),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 500,
-          child: SingleChildScrollView(
-            child: Form(
-              key: editFormKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Basic Information Section
-                  const Text(
-                    'Basic Information',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  TextFormField(
-                    controller: editNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Item Name *',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.inventory),
+        builder: (context, setEditDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 10,
+          child: Container(
+            width: 500,
+            constraints: const BoxConstraints(maxHeight: 700),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Colors.white, Color(0xFFF8FFF8)],
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with gradient
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Item name is required';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: editCategoryController,
-                          decoration: const InputDecoration(
-                            labelText: 'Category *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.category),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Category is required';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: editSupplierController,
-                          decoration: const InputDecoration(
-                            labelText: 'Supplier',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.business),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: editDescriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.description),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
                     ),
-                    maxLines: 2,
                   ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Stock Information Section
-                  const Text(
-                    'Stock Information',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  Row(
+                  child: Row(
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: editCurrentStockController,
-                          decoration: const InputDecoration(
-                            labelText: 'Current Stock *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.inventory_2),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return 'Current stock is required';
-                            }
-                            if (double.tryParse(value) == null) {
-                              return 'Enter a valid number';
-                            }
-                            return null;
-                          },
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: editMinStockController,
-                          decoration: const InputDecoration(
-                            labelText: 'Min Stock',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.warning),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: editMaxStockController,
-                          decoration: const InputDecoration(
-                            labelText: 'Max Stock',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.trending_up),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: editLocationController,
-                          decoration: const InputDecoration(
-                            labelText: 'Location',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.location_on),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Pricing Information Section
-                  const Text(
-                    'Pricing Information',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  Row(
-                    children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // VAT Toggle for Unit Cost in Edit Dialog
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isEditCostVATInclusive ? Colors.green[50] : Colors.grey[50],
-                                border: Border.all(
-                                  color: isEditCostVATInclusive ? Colors.green[300]! : Colors.grey[300]!,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isEditCostVATInclusive ? Icons.check_circle : Icons.cancel,
-                                    color: isEditCostVATInclusive ? Colors.green[600] : Colors.grey[600],
-                                    size: 18,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    isEditCostVATInclusive ? 'VAT Included' : 'VAT Excluded',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: isEditCostVATInclusive ? Colors.green[700] : Colors.grey[700],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setEditDialogState(() {
-                                        isEditCostVATInclusive = !isEditCostVATInclusive;
-                                      });
-                                    },
-                                    child: Container(
-                                      width: 40,
-                                      height: 20,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(10),
-                                        color: isEditCostVATInclusive ? Colors.green : Colors.grey[400],
-                                      ),
-                                      child: AnimatedAlign(
-                                        duration: const Duration(milliseconds: 200),
-                                        alignment: isEditCostVATInclusive 
-                                            ? Alignment.centerRight 
-                                            : Alignment.centerLeft,
-                                        child: Container(
-                                          width: 16,
-                                          height: 16,
-                                          margin: const EdgeInsets.all(2),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              'Edit ${item['name'] ?? 'Item'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            // Unit Cost Field
-                            TextFormField(
-                              controller: editUnitCostController,
-                              decoration: InputDecoration(
-                                labelText: isEditCostVATInclusive 
-                                    ? 'Unit Cost (VAT Inclusive) (BHD)' 
-                                    : 'Unit Cost (VAT Exclusive) (BHD)',
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.attach_money),
+                            const Text(
+                              'Update item information',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
                               ),
-                              keyboardType: TextInputType.number,
-                              validator: (value) {
-                                if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
-                                  return 'Enter a valid number';
-                                }
-                                return null;
-                              },
                             ),
                           ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: editSellingPriceController,
-                          decoration: const InputDecoration(
-                            labelText: 'Selling Price (BHD)',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.sell),
-                          ),
-                          keyboardType: TextInputType.number,
-                          validator: (value) {
-                            if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
-                              return 'Enter a valid number';
-                            }
-                            return null;
-                          },
                         ),
                       ),
                     ],
                   ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  TextFormField(
-                    controller: editNotesController,
-                    decoration: const InputDecoration(
-                      labelText: 'Notes',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.note),
-                    ),
-                    maxLines: 2,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              // Dispose controllers
-              editNameController.dispose();
-              editCategoryController.dispose();
-              editDescriptionController.dispose();
-              editCurrentStockController.dispose();
-              editMinStockController.dispose();
-              editMaxStockController.dispose();
-              editUnitCostController.dispose();
-              editSellingPriceController.dispose();
-              editSupplierController.dispose();
-              editLocationController.dispose();
-              editNotesController.dispose();
-            },
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (editFormKey.currentState!.validate()) {
-                try {
-                  // Show loading
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Row(
+                ),
+                
+                // Content
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: editFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                          // Basic Information Section
+                          _buildModernEditSection(
+                            'Basic Information',
+                            Icons.info_outline,
+                            [
+                              _buildModernFormField(
+                                controller: editNameController,
+                                label: 'Item Name *',
+                                icon: Icons.inventory,
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Item name is required';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editCategoryController,
+                                      label: 'Category *',
+                                      icon: Icons.category,
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Category is required';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editSupplierController,
+                                      label: 'Supplier',
+                                      icon: Icons.business,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _buildModernFormField(
+                                controller: editDescriptionController,
+                                label: 'Description',
+                                icon: Icons.description,
+                                maxLines: 2,
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 16),
-                          Text('Updating item...'),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Stock Information Section
+                          _buildModernEditSection(
+                            'Stock Information',
+                            Icons.inventory,
+                            [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editCurrentStockController,
+                                      label: 'Current Stock *',
+                                      icon: Icons.inventory_2,
+                                      keyboardType: TextInputType.number,
+                                      validator: (value) {
+                                        if (value == null || value.trim().isEmpty) {
+                                          return 'Current stock is required';
+                                        }
+                                        if (double.tryParse(value) == null) {
+                                          return 'Enter a valid number';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editMinStockController,
+                                      label: 'Minimum Stock',
+                                      icon: Icons.warning,
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editMaxStockController,
+                                      label: 'Maximum Stock',
+                                      icon: Icons.trending_up,
+                                      keyboardType: TextInputType.number,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editLocationController,
+                                      label: 'Location',
+                                      icon: Icons.location_on,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Pricing Information Section
+                          _buildModernEditSection(
+                            'Pricing Information',
+                            Icons.monetization_on,
+                            [
+                              // VAT Toggle
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isEditCostVATInclusive ? const Color(0xFFF1F8E9) : const Color(0xFFF5F5F5),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isEditCostVATInclusive ? const Color(0xFF4CAF50) : const Color(0xFFBDBDBD),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.percent,
+                                      color: isEditCostVATInclusive ? const Color(0xFF4CAF50) : Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'VAT Configuration',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: isEditCostVATInclusive ? const Color(0xFF2E7D32) : Colors.grey[700],
+                                            ),
+                                          ),
+                                          Text(
+                                            isEditCostVATInclusive ? 'Cost includes VAT' : 'Cost excludes VAT',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isEditCostVATInclusive ? const Color(0xFF4CAF50) : Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    GestureDetector(
+                                      onTap: () {
+                                        setEditDialogState(() {
+                                          isEditCostVATInclusive = !isEditCostVATInclusive;
+                                        });
+                                      },
+                                      child: Container(
+                                        width: 50,
+                                        height: 24,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          color: isEditCostVATInclusive ? const Color(0xFF4CAF50) : Colors.grey[400],
+                                        ),
+                                        child: AnimatedAlign(
+                                          duration: const Duration(milliseconds: 200),
+                                          alignment: isEditCostVATInclusive 
+                                              ? Alignment.centerRight 
+                                              : Alignment.centerLeft,
+                                          child: Container(
+                                            width: 20,
+                                            height: 20,
+                                            margin: const EdgeInsets.all(2),
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editUnitCostController,
+                                      label: isEditCostVATInclusive 
+                                          ? 'Unit Cost (VAT Inc) *' 
+                                          : 'Unit Cost (VAT Exc) *',
+                                      icon: Icons.attach_money,
+                                      keyboardType: TextInputType.number,
+                                      validator: (value) {
+                                        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
+                                          return 'Enter a valid number';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: _buildModernFormField(
+                                      controller: editSellingPriceController,
+                                      label: 'Selling Price (BHD)',
+                                      icon: Icons.sell,
+                                      keyboardType: TextInputType.number,
+                                      validator: (value) {
+                                        if (value != null && value.isNotEmpty && double.tryParse(value) == null) {
+                                          return 'Enter a valid number';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          
+                          const SizedBox(height: 24),
+                          
+                          // Notes Section
+                          _buildModernEditSection(
+                            'Additional Notes',
+                            Icons.note,
+                            [
+                              _buildModernFormField(
+                                controller: editNotesController,
+                                label: 'Notes',
+                                icon: Icons.description,
+                                maxLines: 3,
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                      duration: Duration(seconds: 2),
                     ),
-                  );
-
-                  // Prepare updated item data
-                  final updatedItemData = {
-                    'id': item['id'], // Keep the original ID
-                    'name': editNameController.text.trim(),
-                    'category': editCategoryController.text.trim(),
-                    'description': editDescriptionController.text.trim(),
-                    'sku': item['sku'] ?? '', // Keep original SKU
-                    'barcode': item['barcode'] ?? '', // Keep original barcode
-                    'unit': item['unit'] ?? 'pcs', // Keep original unit
-                    'currentStock': double.tryParse(editCurrentStockController.text) ?? 0.0,
-                    'minimumStock': double.tryParse(editMinStockController.text) ?? 0.0,
-                    'maximumStock': double.tryParse(editMaxStockController.text) ?? 0.0,
-                    'unitCost': double.tryParse(editUnitCostController.text) ?? 0.0,
-                    'sellingPrice': double.tryParse(editSellingPriceController.text) ?? 0.0,
-                    'supplier': editSupplierController.text.trim(),
-                    'location': editLocationController.text.trim(),
-                    'status': item['status'] ?? 'Active', // Keep original status
-                    'notes': editNotesController.text.trim(),
-                    'dateAdded': item['dateAdded'], // Keep original date
-                    'lastUpdated': DateTime.now().toIso8601String(), // Add update timestamp
-                  };
-
-                  // Update the item (you'll need to implement this method in ExcelService)
-                  final success = await _excelService.updateInventoryItem(updatedItemData);
-                  
-                  if (success) {
-                    await _loadInventoryData();
-                    if (mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle, color: Colors.white),
-                              const SizedBox(width: 16),
-                              Text('${editNameController.text} updated successfully!'),
-                            ],
+                  ),
+                ),
+                
+                // Action Buttons
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
+                    ),
+                    border: Border(
+                      top: BorderSide(color: Colors.grey.shade200),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            // Dispose controllers
+                            editNameController.dispose();
+                            editCategoryController.dispose();
+                            editDescriptionController.dispose();
+                            editCurrentStockController.dispose();
+                            editMinStockController.dispose();
+                            editMaxStockController.dispose();
+                            editUnitCostController.dispose();
+                            editSellingPriceController.dispose();
+                            editSupplierController.dispose();
+                            editLocationController.dispose();
+                            editNotesController.dispose();
+                          },
+                          icon: const Icon(Icons.close),
+                          label: const Text('Cancel'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: const BorderSide(color: Color(0xFF757575)),
+                            foregroundColor: const Color(0xFF757575),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          backgroundColor: Colors.green,
-                          duration: const Duration(seconds: 3),
                         ),
-                      );
-                    }
-                  } else {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Row(
-                            children: [
-                              Icon(Icons.error, color: Colors.white),
-                              SizedBox(width: 16),
-                              Text('Failed to update item. Please try again.'),
-                            ],
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                  
-                  // Dispose controllers
-                  editNameController.dispose();
-                  editCategoryController.dispose();
-                  editDescriptionController.dispose();
-                  editCurrentStockController.dispose();
-                  editMinStockController.dispose();
-                  editMaxStockController.dispose();
-                  editUnitCostController.dispose();
-                  editSellingPriceController.dispose();
-                  editSupplierController.dispose();
-                  editLocationController.dispose();
-                  editNotesController.dispose();
-                  
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).clearSnackBars();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Row(
-                          children: [
-                            const Icon(Icons.error, color: Colors.white),
-                            const SizedBox(width: 16),
-                            Expanded(child: Text('Error updating item: ${e.toString()}')),
-                          ],
-                        ),
-                        backgroundColor: Colors.red,
                       ),
-                    );
-                  }
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            if (editFormKey.currentState!.validate()) {
+                              try {
+                                // Show loading
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        ),
+                                        SizedBox(width: 16),
+                                        Text('Updating item...'),
+                                      ],
+                                    ),
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+
+                                // Prepare updated item data
+                                final updatedItemData = {
+                                  'id': item['id'], // Keep the original ID
+                                  'name': editNameController.text.trim(),
+                                  'category': editCategoryController.text.trim(),
+                                  'description': editDescriptionController.text.trim(),
+                                  'sku': item['sku'] ?? '', // Keep original SKU
+                                  'barcode': item['barcode'] ?? '', // Keep original barcode
+                                  'unit': item['unit'] ?? 'pcs', // Keep original unit
+                                  'currentStock': double.tryParse(editCurrentStockController.text) ?? 0.0,
+                                  'minimumStock': double.tryParse(editMinStockController.text) ?? 0.0,
+                                  'maximumStock': double.tryParse(editMaxStockController.text) ?? 0.0,
+                                  'unitCost': double.tryParse(editUnitCostController.text) ?? 0.0,
+                                  'sellingPrice': double.tryParse(editSellingPriceController.text) ?? 0.0,
+                                  'supplier': editSupplierController.text.trim(),
+                                  'location': editLocationController.text.trim(),
+                                  'status': item['status'] ?? 'Active', // Keep original status
+                                  'notes': editNotesController.text.trim(),
+                                  'dateAdded': item['dateAdded'], // Keep original date
+                                  'lastUpdated': DateTime.now().toIso8601String(), // Add update timestamp
+                                };
+
+                                // Update the item
+                                final success = await _excelService.updateInventoryItem(updatedItemData);
+                                
+                                if (success) {
+                                  await _loadInventoryData();
+                                  if (mounted) {
+                                    Navigator.of(context).pop();
+                                    ScaffoldMessenger.of(context).clearSnackBars();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.check_circle, color: Colors.white),
+                                            const SizedBox(width: 16),
+                                            Text('${editNameController.text} updated successfully!'),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 3),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).clearSnackBars();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Row(
+                                          children: [
+                                            Icon(Icons.error, color: Colors.white),
+                                            SizedBox(width: 16),
+                                            Text('Failed to update item. Please try again.'),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                }
+                                
+                                // Dispose controllers
+                                editNameController.dispose();
+                                editCategoryController.dispose();
+                                editDescriptionController.dispose();
+                                editCurrentStockController.dispose();
+                                editMinStockController.dispose();
+                                editMaxStockController.dispose();
+                                editUnitCostController.dispose();
+                                editSellingPriceController.dispose();
+                                editSupplierController.dispose();
+                                editLocationController.dispose();
+                                editNotesController.dispose();
+                                
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.error, color: Colors.white),
+                                          const SizedBox(width: 16),
+                                          Expanded(child: Text('Error updating item: ${e.toString()}')),
+                                        ],
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.save),
+                          label: const Text('Save Changes'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: const Color(0xFF4CAF50),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            child: const Text('Save Changes'),
           ),
-        ],
-      ),
         ),
+      ),
     );
   }
 
-  Widget _buildDetailRow(String label, dynamic value) {
-    if (value == null || value.toString().isEmpty) return const SizedBox.shrink();
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: Text(value.toString()),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _showDeleteConfirmationDialog(Map<String, dynamic> item) async {
     return showDialog<void>(
@@ -1809,5 +2062,245 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
         );
       }
     }
+  }
+
+  // Helper methods for modern dialog
+  Widget _buildModernSection(String title, IconData icon, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icon,
+              color: const Color(0xFF4CAF50),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE8F5E8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 1,
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernDetailRow(String label, String value, IconData icon, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F8E9),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF4CAF50),
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF424242),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                color: valueColor ?? const Color(0xFF616161),
+                fontWeight: valueColor != null ? FontWeight.w600 : FontWeight.normal,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getStockStatusIcon(int currentStock) {
+    if (currentStock <= 0) {
+      return Icons.error;
+    } else if (currentStock <= 5) {
+      return Icons.warning;
+    } else {
+      return Icons.check_circle;
+    }
+  }
+
+  String _getStockStatusText(int currentStock) {
+    if (currentStock <= 0) {
+      return 'Out of Stock';
+    } else if (currentStock <= 5) {
+      return 'Low Stock';
+    } else {
+      return 'In Stock';
+    }
+  }
+
+  Color _getStockStatusColor(int currentStock) {
+    if (currentStock <= 0) {
+      return const Color(0xFFE57373);
+    } else if (currentStock <= 5) {
+      return const Color(0xFFFFB74D);
+    } else {
+      return const Color(0xFF4CAF50);
+    }
+  }
+
+  // Helper methods for modern edit dialog
+  Widget _buildModernEditSection(String title, IconData icon, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F8E9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF4CAF50),
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE8F5E8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                spreadRadius: 1,
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernFormField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Container(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            icon,
+            color: const Color(0xFF4CAF50),
+            size: 20,
+          ),
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE57373)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFE57373), width: 2),
+        ),
+        filled: true,
+        fillColor: const Color(0xFFFAFAFA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        labelStyle: const TextStyle(
+          color: Color(0xFF616161),
+          fontSize: 14,
+        ),
+      ),
+      style: const TextStyle(
+        fontSize: 14,
+        color: Color(0xFF212121),
+      ),
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      validator: validator,
+    );
   }
 }
