@@ -12,7 +12,7 @@ class InventoryManagementScreen extends StatefulWidget {
 }
 
 class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
-  final ExcelService _excelService = ExcelService();
+  final ExcelService _excelService = ExcelService.instance;
   late FocusNode _focusNode;
   
   List<Map<String, dynamic>> _materials = [];

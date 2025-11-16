@@ -2763,13 +2763,109 @@ class ExcelService {
   }
   
   Future<bool> deleteMaterial(String materialId) async {
-    print('deleteMaterial: Not implemented yet');
-    return false;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/inventory_items.xlsx';
+      final file = File(filePath);
+      
+      if (!await file.exists()) {
+        print('Inventory file does not exist');
+        return false;
+      }
+      
+      final bytes = await file.readAsBytes();
+      final excel = Excel.decodeBytes(bytes);
+      final sheet = excel['Items'];
+      
+      // Find and delete the material row
+      bool found = false;
+      for (int rowIndex = sheet.maxRows - 1; rowIndex >= 1; rowIndex--) {
+        final row = sheet.row(rowIndex);
+        if (row.isNotEmpty && row[0]?.value?.toString() == materialId) {
+          sheet.removeRow(rowIndex);
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        print('Material with ID $materialId not found');
+        return false;
+      }
+      
+      // Save the file
+      final newBytes = excel.encode();
+      if (newBytes != null) {
+        await file.writeAsBytes(newBytes);
+        print('Successfully deleted material with ID: $materialId');
+        return true;
+      } else {
+        print('Failed to encode Excel file');
+        return false;
+      }
+    } catch (e) {
+      print('Error deleting material: $e');
+      return false;
+    }
   }
   
   Future<bool> addMaterialStock(String materialId, double quantity, double purchaseCost, double sellingPrice) async {
-    print('addMaterialStock: Not implemented yet');
-    return false;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/inventory_items.xlsx';
+      final file = File(filePath);
+      
+      if (!await file.exists()) {
+        print('Inventory file does not exist');
+        return false;
+      }
+      
+      final bytes = await file.readAsBytes();
+      final excel = Excel.decodeBytes(bytes);
+      final sheet = excel['Items'];
+      
+      // Find and update the material
+      bool found = false;
+      for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
+        final row = sheet.row(rowIndex);
+        if (row.isNotEmpty && row[0]?.value?.toString() == materialId) {
+          // Update stock and costs
+          final currentStock = double.tryParse(row[7]?.value?.toString() ?? '0') ?? 0.0;
+          final newStock = currentStock + quantity;
+          
+          // Column H: Current Stock (quantity)
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value = newStock;
+          // Column K: Cost Price
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value = purchaseCost;
+          // Column L: Selling Price  
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value = sellingPrice;
+          // Column Q: Last Updated
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex)).value = DateTime.now().toIso8601String();
+          
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        print('Material with ID $materialId not found');
+        return false;
+      }
+      
+      // Save the file
+      final newBytes = excel.encode();
+      if (newBytes != null) {
+        await file.writeAsBytes(newBytes);
+        print('Successfully updated material stock for ID: $materialId');
+        return true;
+      } else {
+        print('Failed to encode Excel file');
+        return false;
+      }
+    } catch (e) {
+      print('Error adding material stock: $e');
+      return false;
+    }
   }
   
   Future<bool> addMaterial(Map<String, dynamic> material) async {
@@ -2779,8 +2875,71 @@ class ExcelService {
   }
   
   Future<bool> updateMaterial(Map<String, dynamic> material) async {
-    print('updateMaterial: Not implemented yet');
-    return false;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/inventory_items.xlsx';
+      final file = File(filePath);
+      
+      if (!await file.exists()) {
+        print('Inventory file does not exist');
+        return false;
+      }
+      
+      final bytes = await file.readAsBytes();
+      final excel = Excel.decodeBytes(bytes);
+      final sheet = excel['Items'];
+      
+      // Find and update the material
+      bool found = false;
+      for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
+        final row = sheet.row(rowIndex);
+        if (row.isNotEmpty && row[0]?.value?.toString() == material['id']) {
+          // Update all material fields
+          // Column B: Name
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: rowIndex)).value = material['name'];
+          // Column C: Category
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: rowIndex)).value = material['category'];
+          // Column G: Unit
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: rowIndex)).value = material['unit'];
+          // Column H: Current Stock
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: rowIndex)).value = material['currentStock'];
+          // Column I: Minimum Stock
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: rowIndex)).value = material['minimumStock'];
+          // Column K: Cost Price (purchaseCost maps to costPrice in Excel)
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: rowIndex)).value = material['purchaseCost'];
+          // Column L: Selling Price
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: rowIndex)).value = material['sellingPrice'];
+          // Column M: Supplier
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: rowIndex)).value = material['supplier'];
+          // Column Q: Last Updated
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 16, rowIndex: rowIndex)).value = DateTime.now().toIso8601String();
+          // Column R: Notes
+          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 17, rowIndex: rowIndex)).value = material['notes'];
+          
+          found = true;
+          break;
+        }
+      }
+      
+      if (!found) {
+        print('Material with ID ${material['id']} not found');
+        return false;
+      }
+      
+      // Save the file
+      final newBytes = excel.encode();
+      if (newBytes != null) {
+        await file.writeAsBytes(newBytes);
+        print('Successfully updated material: ${material['name']}');
+        return true;
+      } else {
+        print('Failed to encode Excel file');
+        return false;
+      }
+    } catch (e) {
+      print('Error updating material: $e');
+      return false;
+    }
   }
   
 

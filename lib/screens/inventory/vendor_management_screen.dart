@@ -501,9 +501,9 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
         width: 800,
         height: 600,
         decoration: BoxDecoration(
-          color: Colors.blue[50],
+          color: Colors.green[50],
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue[300]!, width: 2),
+          border: Border.all(color: Colors.green[300]!, width: 2),
         ),
         child: Column(
           children: [
@@ -511,7 +511,7 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
             Container(
               height: 60,
               decoration: BoxDecoration(
-                color: Colors.blue[600],
+                color: Colors.green[600],
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(6),
                   topRight: Radius.circular(6),
