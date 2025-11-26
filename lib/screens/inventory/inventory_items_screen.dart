@@ -21,8 +21,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
   bool _showAddItemForm = false;
   String _searchQuery = '';
   
-  // VAT inclusive state for cost prices
-  bool _isNewItemCostVATInclusive = true; // Default to VAT inclusive
+  // Removed VAT functionality as per requirements
   
   // Form controllers
   final _nameController = TextEditingController();
@@ -426,15 +425,15 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                           margin: const EdgeInsets.all(16),
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.blue[300]!, width: 2),
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.green[300]!, width: 2),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.green.withOpacity(0.15),
                                 spreadRadius: 3,
-                                blurRadius: 10,
-                                offset: const Offset(0, 3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
@@ -446,12 +445,16 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue[600],
+                                    gradient: LinearGradient(
+                                      colors: [Colors.green[600]!, Colors.green[700]!],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.add_circle, color: Colors.white, size: 24),
+                                      Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
                                       SizedBox(width: 12),
                                       Text(
                                         'Add New Item',
@@ -459,6 +462,15 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           color: Colors.white,
+                                        ),
+                                      ),
+                                      Spacer(),
+                                      Text(
+                                        'Form',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
@@ -484,14 +496,18 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             focusNode: _nameFocusNode,
                                             decoration: InputDecoration(
                                               labelText: 'Item Name *',
-                                              prefixIcon: const Icon(Icons.inventory, size: 20),
+                                              prefixIcon: const Icon(Icons.inventory, size: 20, color: Colors.green),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                              ),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: const TextStyle(fontSize: 14),
+                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                             ),
-                                            style: const TextStyle(fontSize: 14),
+                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
                                             onFieldSubmitted: (value) {
                                               // Move to category field when Enter is pressed
                                               FocusScope.of(context).requestFocus(_categoryFocusNode);
@@ -522,14 +538,18 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             focusNode: _categoryFocusNode,
                                             decoration: InputDecoration(
                                               labelText: 'Category *',
-                                              prefixIcon: const Icon(Icons.category, size: 20),
+                                              prefixIcon: const Icon(Icons.category, size: 20, color: Colors.green),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                              ),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: const TextStyle(fontSize: 14),
+                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                             ),
-                                            style: const TextStyle(fontSize: 14),
+                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
                                             onFieldSubmitted: (value) {
                                               // Move to stock field when Enter is pressed
                                               FocusScope.of(context).requestFocus(_stockFocusNode);
@@ -560,14 +580,18 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             focusNode: _stockFocusNode,
                                             decoration: InputDecoration(
                                               labelText: 'Stock *',
-                                              prefixIcon: const Icon(Icons.inventory_2, size: 20),
+                                              prefixIcon: const Icon(Icons.inventory_2, size: 20, color: Colors.green),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                              ),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: const TextStyle(fontSize: 14),
+                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                             ),
-                                            style: const TextStyle(fontSize: 14),
+                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
                                             keyboardType: TextInputType.number,
                                             onFieldSubmitted: (value) {
                                               // Move to unit cost field when Enter is pressed
@@ -607,15 +631,19 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             controller: _unitCostController,
                                             focusNode: _unitCostFocusNode,
                                             decoration: InputDecoration(
-                                              labelText: _isNewItemCostVATInclusive ? 'Cost (VAT Inc) *' : 'Cost (VAT Exc) *',
-                                              prefixIcon: const Icon(Icons.attach_money, size: 20),
+                                              labelText: 'Unit Cost *',
+                                              prefixIcon: const Icon(Icons.attach_money, size: 20, color: Colors.green),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                              ),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: const TextStyle(fontSize: 14),
+                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                             ),
-                                            style: const TextStyle(fontSize: 14),
+                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
                                             keyboardType: TextInputType.number,
                                             onFieldSubmitted: (value) {
                                               // Move to selling price field when Enter is pressed
@@ -650,14 +678,18 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             focusNode: _sellingPriceFocusNode,
                                             decoration: InputDecoration(
                                               labelText: 'Selling Price *',
-                                              prefixIcon: const Icon(Icons.sell, size: 20),
+                                              prefixIcon: const Icon(Icons.sell, size: 20, color: Colors.green),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(8),
                                               ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                              ),
                                               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: const TextStyle(fontSize: 14),
+                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                             ),
-                                            style: const TextStyle(fontSize: 14),
+                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
                                             keyboardType: TextInputType.number,
                                             onFieldSubmitted: (value) {
                                               // Move to add button when Enter is pressed
@@ -674,70 +706,6 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                             },
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    // VAT Toggle in same row
-                                    Container(
-                                      width: 140,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        color: _isNewItemCostVATInclusive ? Colors.green[50] : Colors.grey[50],
-                                        border: Border.all(
-                                          color: _isNewItemCostVATInclusive ? Colors.green[300]! : Colors.grey[300]!,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'VAT',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                              color: _isNewItemCostVATInclusive ? Colors.green[700] : Colors.grey[700],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                _isNewItemCostVATInclusive = !_isNewItemCostVATInclusive;
-                                              });
-                                            },
-                                            child: Container(
-                                              width: 50,
-                                              height: 24,
-                                              decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(12),
-                                                color: _isNewItemCostVATInclusive ? Colors.green : Colors.grey[400],
-                                              ),
-                                              child: AnimatedAlign(
-                                                duration: const Duration(milliseconds: 200),
-                                                alignment: _isNewItemCostVATInclusive 
-                                                    ? Alignment.centerRight 
-                                                    : Alignment.centerLeft,
-                                                child: Container(
-                                                  width: 20,
-                                                  height: 20,
-                                                  margin: const EdgeInsets.all(2),
-                                                  decoration: const BoxDecoration(
-                                                    color: Colors.white,
-                                                    shape: BoxShape.circle,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            _isNewItemCostVATInclusive ? 'Included' : 'Excluded',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: _isNewItemCostVATInclusive ? Colors.green[600] : Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ],
@@ -765,9 +733,12 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                           icon: const Icon(Icons.save, size: 18),
                                           label: const Text('Save Item'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.blue[600],
+                                            backgroundColor: Colors.green[600],
                                             foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -785,6 +756,9 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                       style: TextButton.styleFrom(
                                         foregroundColor: Colors.grey[700],
                                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
                                       ),
                                     ),
                                   ],
