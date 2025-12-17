@@ -1371,13 +1371,14 @@ class ExcelService {
         final sellingPriceWithoutVAT = sellingPrice - vatAmountPerUnit; // Selling price minus VAT per unit
         final totalSellingPriceWithoutVAT = sellingPriceWithoutVAT * quantitySold; // Total selling price without VAT
         
-        // Calculate profit using: (Selling Price without VAT - Batch Cost Price) × Quantity
-        final profitPerUnit = sellingPriceWithoutVAT - wacCostPrice; // Profit per unit
-        final totalProfit = profitPerUnit * quantitySold;          // Total profit
+        // NEW FORMULA: Calculate profit using: sale amount - VAT amount - unit cost
+        final totalSaleAmount = quantitySold * sellingPrice; // Total sale amount (VAT-inclusive)
+        final totalCostAmount = quantitySold * wacCostPrice; // Total unit cost
+        final totalProfit = totalSaleAmount - vatAmountFromSale - totalCostAmount; // New profit formula
+        final profitPerUnit = totalProfit / quantitySold; // Profit per unit
         
         // Calculate totals for other columns
         final totalCost = quantitySold * wacCostPrice;             // Total cost using WAC
-        final totalSale = quantitySold * sellingPrice;            // Total sale value from form (VAT-inclusive)
         
         // Calculate profit margin percentage based on selling price without VAT
         final profitMarginPercent = sellingPriceWithoutVAT > 0 ? (profitPerUnit / sellingPriceWithoutVAT) * 100 : 0.0;
@@ -1435,7 +1436,7 @@ class ExcelService {
           vatAmountFromSale,                                     // VAT Amount - Column I (index 8)
           totalSellingPriceWithoutVAT,                          // Selling price without VAT - Column J (index 9)
           totalCost,                                             // Total cost - Column K (index 10)
-          totalSale,                                             // Total sale - Column L (index 11)
+          totalSaleAmount,                                       // Total sale - Column L (index 11)
           totalProfit,                                           // Profit Amount - Column M (index 12)
           profitMarginPercent,                                   // Profit margin percentage - Column N (index 13)
           saleData['paymentStatus'] ?? 'Paid',                  // Payment Status - Column O (index 14)
@@ -1511,7 +1512,7 @@ class ExcelService {
           partyName: saleData['customerName']?.toString().trim().isNotEmpty == true 
               ? saleData['customerName'] 
               : 'Walk-in Customer',
-          amount: totalSale, // Positive amount for revenue
+          amount: totalSaleAmount, // Positive amount for revenue
           description: 'Sale of ${quantitySold}x ${itemName}',
           reference: saleData['saleId']?.toString() ?? '',
           category: 'Sales Revenue',
@@ -1727,8 +1728,13 @@ class ExcelService {
         final customerName = row[2]?.value?.toString() ?? 'Walk-in Customer';
         final itemName = row[4]?.value?.toString() ?? '';
         final quantitySold = double.tryParse(row[5]?.value?.toString() ?? '0') ?? 0.0;
-        final totalSale = double.tryParse(row[9]?.value?.toString() ?? '0') ?? 0.0;
-        final profitAmount = double.tryParse(row[10]?.value?.toString() ?? '0') ?? 0.0;
+        final wacCostPrice = double.tryParse(row[6]?.value?.toString() ?? '0') ?? 0.0;
+        final vatAmount = double.tryParse(row[8]?.value?.toString() ?? '0') ?? 0.0;
+        final totalSaleAmount = double.tryParse(row[11]?.value?.toString() ?? '0') ?? 0.0;
+        
+        // Calculate profit using new formula: sale amount - VAT amount - unit cost
+        final totalCostAmount = wacCostPrice * quantitySold;
+        final recalculatedProfit = totalSaleAmount - vatAmount - totalCostAmount;
         
         if (groupedSales.containsKey(saleId)) {
           // Add to existing group
@@ -1736,13 +1742,13 @@ class ExcelService {
           existingItems.add({
             'itemName': itemName,
             'quantity': quantitySold,
-            'totalSale': totalSale,
-            'profit': profitAmount,
+            'totalSale': totalSaleAmount,
+            'profit': recalculatedProfit,
           });
           
           groupedSales[saleId]!['itemsList'] = existingItems;
-          groupedSales[saleId]!['totalCost'] = (groupedSales[saleId]!['totalCost'] as double) + totalSale;
-          groupedSales[saleId]!['profit'] = (groupedSales[saleId]!['profit'] as double) + profitAmount;
+          groupedSales[saleId]!['totalCost'] = (groupedSales[saleId]!['totalCost'] as double) + totalSaleAmount;
+          groupedSales[saleId]!['profit'] = (groupedSales[saleId]!['profit'] as double) + recalculatedProfit;
           groupedSales[saleId]!['quantity'] = (groupedSales[saleId]!['quantity'] as double) + quantitySold;
           groupedSales[saleId]!['itemCount'] = existingItems.length;
           
@@ -1759,8 +1765,8 @@ class ExcelService {
             'customerName': customerName,
             'items': itemName,
             'quantity': quantitySold,
-            'totalCost': totalSale,
-            'profit': profitAmount,
+            'totalCost': totalSaleAmount,
+            'profit': recalculatedProfit,
             'orderDate': saleDate,
             'status': 'completed',
             'paymentStatus': 'paid',
@@ -1770,8 +1776,8 @@ class ExcelService {
               {
                 'itemName': itemName,
                 'quantity': quantitySold,
-                'totalSale': totalSale,
-                'profit': profitAmount,
+                'totalSale': totalSaleAmount,
+                'profit': recalculatedProfit,
               }
             ],
           };

@@ -13,7 +13,7 @@ class AllOrdersScreen extends StatefulWidget {
 
 class _AllOrdersScreenState extends State<AllOrdersScreen> {
   bool _isLoading = true;
-  final ExcelService _excelService = ExcelService();
+  final ExcelService _excelService = ExcelService.instance;
   
   List<Map<String, dynamic>> _allOrders = [];
   String _statusFilter = 'all';
@@ -486,6 +486,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   void _showReturnDialog(Map<String, dynamic> order) {
     // List to track which items are selected for return and their quantities
     Map<int, Map<String, dynamic>> returnItems = {};
+    // Controller for return reason description
+    TextEditingController returnReasonController = TextEditingController();
     
     showDialog(
       context: context,
@@ -751,7 +753,42 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                       ),
                     ),
 
-                    // 💰 RETURN SUMMARY & ACTIONS SECTION
+                    // � RETURN REASON SECTION
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Return Reason:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: returnReasonController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: 'Please enter the reason for return (e.g., defective, wrong item, customer request)',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.orange[600]!, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.all(12),
+                            ),
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // �💰 RETURN SUMMARY & ACTIONS SECTION
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -802,7 +839,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                               ElevatedButton(
                                 onPressed: returnItems.isEmpty 
                                     ? null 
-                                    : () => _processReturn(order, returnItems),
+                                    : () => _processReturn(order, returnItems, returnReasonController.text.trim()),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.orange[600],
                                   foregroundColor: Colors.white,
@@ -825,7 +862,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     );
   }
 
-  void _processReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems) {
+  void _processReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) {
     // Close the return dialog
     Navigator.of(context).pop();
     
@@ -853,6 +890,27 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                 child: Text('• ${item['itemName']}: ${item['returnQuantity'].toStringAsFixed(1)} units'),
               )).toList(),
               const SizedBox(height: 12),
+              if (returnReason.isNotEmpty) ...[
+                const Text('Return Reason:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    border: Border.all(color: Colors.orange[200]!),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    returnReason,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               Text(
                 'Total refund: BHD ${returnItems.values.fold(0.0, (sum, item) => sum + (item['returnQuantity'] * item['unitPrice'])).toStringAsFixed(2)}',
                 style: TextStyle(
@@ -870,7 +928,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _executeReturn(order, returnItems);
+                _executeReturn(order, returnItems, returnReason);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange[600],
@@ -884,7 +942,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     );
   }
 
-  Future<void> _executeReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems) async {
+  Future<void> _executeReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) async {
     bool success = true;
     List<String> processedItems = [];
     List<String> failedItems = [];
@@ -913,7 +971,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       }
 
       // Create a return record for tracking
-      await _createReturnRecord(order, returnItems);
+      await _createReturnRecord(order, returnItems, returnReason);
 
       // Show appropriate success/failure message
       if (mounted) {
@@ -1060,7 +1118,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   }
 
   /// Create a record of the return transaction
-  Future<void> _createReturnRecord(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems) async {
+  Future<void> _createReturnRecord(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) async {
     try {
       // TODO: Implement return record creation
       // This could be a new sheet in Excel or a separate returns file
@@ -1070,6 +1128,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         'returnDate': DateTime.now().toIso8601String(),
         'originalSaleId': order['orderId'],
         'customerName': order['customerName'],
+        'returnReason': returnReason.isNotEmpty ? returnReason : 'No reason provided',
         'returnedItems': returnItems.values.map((item) => {
           'itemName': item['itemName'],
           'returnQuantity': item['returnQuantity'],
