@@ -59,6 +59,8 @@ class ExcelService {
     return excel;
   }
 
+  // (Removed duplicate initializeReturnsLogExcelFile definition. Use the one earlier in the file.)
+
   // Generate a template file for order imports
   Future<String> generateOrderTemplate() async {
     final excel = initializeExcelFile();
@@ -1866,7 +1868,7 @@ class ExcelService {
   }
   
   /// Process WAC-based inventory consumption and update stock accordingly
-  /// Uses FIFO for stock consumption but WAC-based cost pricing
+  /// Uses FIFO for consumption order but WAC-based cost pricing
   /// Returns detailed breakdown of cost calculation using inventory_items.xlsx
   Future<Map<String, dynamic>> _processFIFOCostAndUpdateStock(String itemId, double quantitySold) async {
     try {
@@ -2299,12 +2301,13 @@ class ExcelService {
       
       // Get current stock and subtract the used quantity
       final currentStock = (material['currentStock'] as num?)?.toDouble() ?? 0.0;
-      final newStock = currentStock - quantity; // Subtract because materials are being consumed
+      var newStock = currentStock - quantity; // Subtract because materials are being consumed
       
       print('Updating material stock: Current=$currentStock, Used=$quantity, NewStock=$newStock');
       
       // Prevent negative stock (optional - you might want to allow this for tracking)
       if (newStock < 0) {
+        newStock = 0.0;
         print('Warning: Material $materialId will have negative stock: $newStock');
       }
       
@@ -2743,7 +2746,7 @@ class ExcelService {
         final transactionSuccess = await saveTransactionToExcel(
           transactionType: 'vendor_payment',
           partyName: vendorName,
-          amount: -paymentAmount, // Negative because money is going out
+          amount: -paymentAmount, // Negative amount since money is going out
           description: 'Payment to vendor: $vendorName',
           category: 'Vendor Payment',
           transactionDate: DateTime.now(),
@@ -2948,7 +2951,6 @@ class ExcelService {
     }
   }
   
-
   Future<bool> deleteCustomer(String customerId) async {
     print('deleteCustomer: Not implemented yet');
     return false;
@@ -3534,6 +3536,7 @@ class ExcelService {
     excel.delete('Sheet1');
     
     // Create Transaction Details sheet
+
     final sheet = excel['Transaction Details'];
     
     // Set headers
@@ -3579,8 +3582,8 @@ class ExcelService {
     double? vatAmount, // Calculated VAT amount
   }) async {
     try {
-      final documentsPath = Platform.environment['USERPROFILE'] ?? '';
-      final filePath = '$documentsPath\\Documents\\inventory_expenses.xlsx';
+      final documentsDir = Platform.environment['USERPROFILE'] ?? '';
+      final filePath = '$documentsDir\\Documents\\inventory_expenses.xlsx';
       final file = File(filePath);
       
       Excel excel;
@@ -3682,8 +3685,8 @@ class ExcelService {
   /// Load all expense records from inventory_expenses.xlsx
   Future<List<Map<String, dynamic>>> loadExpensesFromExcel() async {
     try {
-      final documentsPath = Platform.environment['USERPROFILE'] ?? '';
-      final filePath = '$documentsPath\\Documents\\inventory_expenses.xlsx';
+      final documentsDir = Platform.environment['USERPROFILE'] ?? '';
+      final filePath = '$documentsDir\\Documents\\inventory_expenses.xlsx';
       final file = File(filePath);
       
       if (!await file.exists()) {
@@ -4413,23 +4416,22 @@ class ExcelService {
         // Process data rows (skip header row 0)
         for (int row = 1; row < sheet.maxRows; row++) {
           final rowData = sheet.row(row);
-          
           // Skip empty rows
           if (rowData.isEmpty || rowData.every((cell) => cell?.value == null)) continue;
-          
           try {
             Map<String, dynamic> transaction = {
               'transactionId': rowData[0]?.value?.toString() ?? '',
-              'dateTime': rowData[1]?.value?.toString() ?? '',
+              'date': _parseDateValue(rowData, {'Date': 1}, 'Date') ?? DateTime.now(),
               'transactionType': rowData[2]?.value?.toString() ?? '',
               'partyName': rowData[3]?.value?.toString() ?? '',
-              'amount': rowData[4]?.value?.toString() ?? '0',
-              'description': rowData[5]?.value?.toString() ?? '',
-              'reference': rowData[6]?.value?.toString() ?? '',
-              'category': rowData[7]?.value?.toString() ?? '',
-              'flowType': rowData[8]?.value?.toString() ?? '',
+              'amount': _parseDoubleValue(rowData, {'Amount': 4}, 'Amount') ?? 0.0,
+              'vatRate': _parseDoubleValue(rowData, {'VAT': 5}, 'VAT') ?? 0.0,
+              'vatAmount': _parseDoubleValue(rowData, {'VAT Amount': 6}, 'VAT Amount') ?? 0.0,
+              'description': rowData[7]?.value?.toString() ?? '',
+              'reference': rowData[8]?.value?.toString() ?? '',
+              'category': rowData[9]?.value?.toString() ?? '',
+              'flowType': rowData[10]?.value?.toString() ?? '',
             };
-            
             // Only add non-empty transactions
             if (transaction['transactionId']?.isNotEmpty == true) {
               transactions.add(transaction);
@@ -4619,5 +4621,39 @@ class ExcelService {
     } catch (e) {
       print('❌ ERROR: Failed to reset inventory file: $e');
     }
+  }
+
+  // Initialize a new empty Excel file for returns log with proper structure
+  Excel initializeReturnsLogExcelFile() {
+    final excel = Excel.createExcel();
+    // Remove default sheet
+    excel.delete('Sheet1');
+    // Create Returns sheet
+    final Sheet returnsSheet = excel['Returns'];
+    // Add column headers
+    final headers = [
+      'Return Date',
+      'Original Sale ID',
+      'Customer Name',
+      'Item Name',
+      'Return Quantity',
+      'Return Amount',
+      'Return Reason',
+      'Processed By',
+    ];
+    for (var i = 0; i < headers.length; i++) {
+      final cell = returnsSheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0));
+      cell.value = headers[i];
+      cell.cellStyle = CellStyle(
+        bold: true,
+        horizontalAlign: HorizontalAlign.Center,
+        backgroundColorHex: '#388E3C',
+        fontColorHex: '#FFFFFF',
+      );
+    }
+    for (var i = 0; i < headers.length; i++) {
+      returnsSheet.setColWidth(i, 18.0);
+    }
+    return excel;
   }
 }

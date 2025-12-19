@@ -447,6 +447,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                         ],
                       ),
                       const SizedBox(height: 16),
+                      // The Return button below is always visible unless intentionally removed or hidden by a parent widget.
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [

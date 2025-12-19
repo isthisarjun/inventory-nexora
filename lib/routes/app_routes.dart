@@ -1,3 +1,4 @@
+import 'package:tailor_v3/screens/returns/returned_items_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tailor_v3/screens/splash_screen.dart';
@@ -44,6 +45,7 @@ class AppRoutes {
   static const String workDetails = '/work-details';
   static const String splash = '/splash';
   static const String orderSummary = '/order-summary';
+  static const String returnedItems = '/returned-items';
   
   // Accounts routes
   static const String accounts = '/accounts';
@@ -223,6 +225,11 @@ class AppRouter {
             };
             return InvoiceDetailsScreen(order: mockOrder);
           },
+        ),
+        GoRoute(
+          path: AppRoutes.returnedItems,
+          name: 'returnedItems',
+          builder: (context, state) => const ReturnedItemsScreen(),
         ),
          // Add more routes as you implement the screens
       ],
