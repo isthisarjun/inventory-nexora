@@ -91,16 +91,12 @@ class AppSidebar extends StatelessWidget {
                       AppRoutes.allOrders,
                       currentRoute == AppRoutes.allOrders,
                     ),
-                    ListTile(
-                      leading: Icon(Icons.assignment_return, color: Colors.green[200]),
-                      title: const Text('Returned Items', style: TextStyle(color: Colors.white)),
-                      selected: currentRoute == AppRoutes.returnedItems,
-                      selectedTileColor: Colors.green[800],
-                      onTap: () {
-                        if (currentRoute != AppRoutes.returnedItems) {
-                          GoRouter.of(context).go(AppRoutes.returnedItems);
-                        }
-                      },
+                    _buildNavItem(
+                      context,
+                      'Returned Items',
+                      Icons.assignment_return,
+                      AppRoutes.returnedItems,
+                      currentRoute == AppRoutes.returnedItems,
                     ),
                   ],
                 ),
