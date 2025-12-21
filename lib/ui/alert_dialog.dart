@@ -48,7 +48,7 @@ class AlertDialog extends StatelessWidget {
   final bool useFullWidthButton;
 
   const AlertDialog({
-    Key? key,
+    super.key,
     this.title,
     this.description,
     this.content,
@@ -64,7 +64,7 @@ class AlertDialog extends StatelessWidget {
     this.width,
     this.maxWidth = 480.0,
     this.useFullWidthButton = false,
-  }) : super(key: key);
+  });
 
   /// Show an alert dialog.
   static Future<T?> show<T>({

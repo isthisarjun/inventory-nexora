@@ -26,7 +26,7 @@ class Form extends StatefulWidget {
   final bool isSubmitting;
   
   const Form({
-    Key? key,
+    super.key,
     required this.child,
     this.onSubmit,
     this.defaultValues,
@@ -34,7 +34,7 @@ class Form extends StatefulWidget {
     this.submitButtonText = 'Submit',
     this.submitButtonColor,
     this.isSubmitting = false,
-  }) : super(key: key);
+  });
 
   @override
   State<Form> createState() => _FormState();
@@ -124,10 +124,10 @@ class FormProvider extends InheritedWidget {
   final _FormState state;
 
   const FormProvider({
-    Key? key,
+    super.key,
     required this.state,
-    required Widget child,
-  }) : super(key: key, child: child);
+    required super.child,
+  });
 
   static _FormState of(BuildContext context) {
     final provider = context.dependOnInheritedWidgetOfExactType<FormProvider>();
@@ -151,12 +151,12 @@ class FormLabel extends StatelessWidget {
   final TextStyle? style;
 
   const FormLabel({
-    Key? key,
+    super.key,
     required this.text,
     this.isRequired = false,
     this.isOptional = false,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -201,10 +201,10 @@ class FormDescription extends StatelessWidget {
   final TextStyle? style;
 
   const FormDescription({
-    Key? key,
+    super.key,
     required this.text,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -227,9 +227,9 @@ class FormError extends StatelessWidget {
   final String text;
 
   const FormError({
-    Key? key,
+    super.key,
     required this.text,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -284,7 +284,7 @@ class FormInput extends StatelessWidget {
   final double borderRadius;
 
   const FormInput({
-    Key? key,
+    super.key,
     required this.name,
     this.label,
     this.placeholder,
@@ -307,7 +307,7 @@ class FormInput extends StatelessWidget {
     this.textCapitalization = TextCapitalization.none,
     this.fillColor,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -429,7 +429,7 @@ class FormTextarea extends StatelessWidget {
   final double borderRadius;
 
   const FormTextarea({
-    Key? key,
+    super.key,
     required this.name,
     this.label,
     this.placeholder,
@@ -448,7 +448,7 @@ class FormTextarea extends StatelessWidget {
     this.textCapitalization = TextCapitalization.sentences,
     this.fillColor,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -491,7 +491,7 @@ class FormSelect extends StatelessWidget {
   final double borderRadius;
 
   const FormSelect({
-    Key? key,
+    super.key,
     required this.name,
     this.label,
     this.placeholder,
@@ -504,7 +504,7 @@ class FormSelect extends StatelessWidget {
     this.error,
     this.fillColor,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -520,7 +520,7 @@ class FormSelect extends StatelessWidget {
             isRequired: isRequired,
           ),
         DropdownButtonFormField<String>(
-          value: currentValue,
+          initialValue: currentValue,
           hint: placeholder != null
               ? Text(placeholder!)
               : null,
@@ -610,7 +610,7 @@ class FormCheckbox extends StatefulWidget {
   final String? error;
 
   const FormCheckbox({
-    Key? key,
+    super.key,
     required this.name,
     required this.label,
     this.description,
@@ -619,7 +619,7 @@ class FormCheckbox extends StatefulWidget {
     this.defaultValue,
     this.onChanged,
     this.error,
-  }) : super(key: key);
+  });
 
   @override
   State<FormCheckbox> createState() => _FormCheckboxState();
@@ -720,7 +720,7 @@ class FormRadioGroup extends StatefulWidget {
   final String? error;
 
   const FormRadioGroup({
-    Key? key,
+    super.key,
     required this.name,
     this.label,
     required this.options,
@@ -730,7 +730,7 @@ class FormRadioGroup extends StatefulWidget {
     this.defaultValue,
     this.onChanged,
     this.error,
-  }) : super(key: key);
+  });
 
   @override
   State<FormRadioGroup> createState() => _FormRadioGroupState();
@@ -807,7 +807,7 @@ class _FormRadioGroupState extends State<FormRadioGroup> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
             if (widget.description != null)
               FormDescription(text: widget.description!),
             if (state.hasError) FormError(text: state.errorText!),
@@ -847,7 +847,7 @@ class FormDatePicker extends StatefulWidget {
   final double borderRadius;
 
   const FormDatePicker({
-    Key? key,
+    super.key,
     required this.name,
     this.label,
     this.placeholder,
@@ -862,7 +862,7 @@ class FormDatePicker extends StatefulWidget {
     this.dateFormat,
     this.fillColor,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   State<FormDatePicker> createState() => _FormDatePickerState();

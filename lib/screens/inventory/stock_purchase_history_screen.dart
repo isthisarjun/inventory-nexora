@@ -187,7 +187,7 @@ class _StockPurchaseHistoryScreenState extends State<StockPurchaseHistoryScreen>
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${_formatDate(purchase['date'])}',
+                                  _formatDate(purchase['date']),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.white.withOpacity(0.9),

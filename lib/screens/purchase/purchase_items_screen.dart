@@ -44,7 +44,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   // Data lists
   List<Map<String, dynamic>> _vendors = [];
   List<Map<String, dynamic>> _inventoryItems = [];
-  List<Map<String, dynamic>> _purchaseItems = [];
+  final List<Map<String, dynamic>> _purchaseItems = [];
   
   // Selected values
   String? _selectedVendorId;
@@ -605,7 +605,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                           Row(
                             children: [
                               const Spacer(),
-                              Container(
+                              SizedBox(
                                 width: 120,
                                 height: 60,
                                 child: Focus(
@@ -799,7 +799,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
+          SizedBox(
             height: 60,
             child: Focus(
               focusNode: _vendorFocusNode,
@@ -1010,7 +1010,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   }
 
   Widget _buildItemDropdown() {
-    return Container(
+    return SizedBox(
       height: 60,
       child: Focus(
         focusNode: _itemFocusNode,
@@ -1032,7 +1032,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           },
           child: DropdownButtonFormField<String>(
             key: _itemDropdownKey,
-            value: _selectedItemId,
+            initialValue: _selectedItemId,
             decoration: InputDecoration(
               labelText: 'Item Name *',
               prefixIcon: const Icon(Icons.inventory, size: 20),
@@ -1053,7 +1053,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                 value: item['id'],
                 child: Text(item['name'], style: const TextStyle(fontSize: 14, color: Colors.black)),
               );
-            }).toList(),
+            }),
             const DropdownMenuItem<String>(
               value: 'add_new_item',
               child: Text('➕ Add New Item', style: TextStyle(fontSize: 14, color: Colors.black)),
@@ -1086,7 +1086,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   }
 
   Widget _buildQuantityField() {
-    return Container(
+    return SizedBox(
       height: 60,
       child: TextFormField(
         controller: _quantityController,
@@ -1159,7 +1159,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   }
 
   Widget _buildUnitCostField() {
-    return Container(
+    return SizedBox(
       height: 60,
       child: TextFormField(
         controller: _unitCostController,
@@ -1450,7 +1450,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
               _isPaid = value;
             });
           },
-          activeColor: AppColors.primary,
+          activeThumbColor: AppColors.primary,
         ),
         if (!_isPaid)
           Container(

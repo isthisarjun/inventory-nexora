@@ -4,10 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../widgets/app_sidebar.dart';
 import '../routes/app_routes.dart';
 import '../services/excel_service.dart';
-import '../services/notification_service.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -91,7 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ],
                   ),
-                )).toList(),
+                )),
               ],
             ),
           ),

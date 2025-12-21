@@ -32,7 +32,7 @@ class CustomCheckbox extends StatefulWidget {
   final TextStyle? labelStyle;
 
   const CustomCheckbox({
-    Key? key,
+    super.key,
     this.checked,
     this.onChanged,
     this.label,
@@ -43,7 +43,7 @@ class CustomCheckbox extends StatefulWidget {
     this.activeColor,
     this.borderColor,
     this.labelStyle,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomCheckbox> createState() => _CustomCheckboxState();
@@ -200,7 +200,7 @@ class CheckboxGroup<T> extends StatefulWidget {
   final TextStyle? labelStyle;
 
   const CheckboxGroup({
-    Key? key,
+    super.key,
     required this.options,
     this.value,
     this.onChanged,
@@ -209,7 +209,7 @@ class CheckboxGroup<T> extends StatefulWidget {
     this.spacing = 8.0,
     this.label,
     this.labelStyle,
-  }) : super(key: key);
+  });
 
   @override
   State<CheckboxGroup<T>> createState() => _CheckboxGroupState<T>();

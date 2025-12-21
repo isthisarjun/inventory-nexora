@@ -1116,7 +1116,7 @@ class _PurchaseDialogState extends State<PurchaseDialog> {
                       children: [
               // Vendor selection
               DropdownButtonFormField<String>(
-                value: _selectedVendorId,
+                initialValue: _selectedVendorId,
                 decoration: const InputDecoration(
                   labelText: 'Select Vendor',
                   border: OutlineInputBorder(),
@@ -2175,7 +2175,7 @@ class _EditMaterialDialogState extends State<EditMaterialDialog> {
                     Padding(
                       padding: const EdgeInsets.only(left: 16),
                       child: DropdownButtonFormField<String>(
-                        value: _selectedCategory,
+                        initialValue: _selectedCategory,
                         decoration: const InputDecoration(
                           border: OutlineInputBorder(),
                         ),

@@ -6,7 +6,7 @@ void main() {
 }
 
 class PaymentDialogTest extends StatelessWidget {
-  const PaymentDialogTest({Key? key}) : super(key: key);
+  const PaymentDialogTest({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,7 +18,7 @@ class PaymentDialogTest extends StatelessWidget {
 }
 
 class TestScreen extends StatefulWidget {
-  const TestScreen({Key? key}) : super(key: key);
+  const TestScreen({super.key});
 
   @override
   State<TestScreen> createState() => _TestScreenState();
@@ -91,7 +91,7 @@ class _TestScreenState extends State<TestScreen> {
                                     }
                                   });
                                 },
-                                activeColor: Colors.green,
+                                activeThumbColor: Colors.green,
                                 inactiveThumbColor: Colors.orange,
                               ),
                               const Text('Paid'),

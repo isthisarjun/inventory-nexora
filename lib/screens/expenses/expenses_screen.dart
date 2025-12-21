@@ -5,7 +5,6 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import '../../services/excel_service.dart';
-import '../../widgets/category_management_widget.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -240,7 +239,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: TextFormField(
                               controller: descriptionController,
@@ -263,7 +262,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: TextFormField(
                               controller: amountController,
@@ -294,10 +293,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: DropdownButtonFormField<String>(
-                              value: selectedCategory,
+                              initialValue: selectedCategory,
                               decoration: InputDecoration(
                                 labelText: 'Category *',
                                 prefixIcon: const Icon(Icons.category, size: 20),
@@ -324,10 +323,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: DropdownButtonFormField<String>(
-                              value: selectedPaymentMethod,
+                              initialValue: selectedPaymentMethod,
                               decoration: InputDecoration(
                                 labelText: 'Payment Method *',
                                 prefixIcon: const Icon(Icons.payment, size: 20),
@@ -360,7 +359,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: TextFormField(
                               controller: vendorController,
@@ -383,7 +382,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: TextFormField(
                               controller: referenceController,
@@ -402,7 +401,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Container(
+                          child: SizedBox(
                             height: 60,
                             child: InkWell(
                               onTap: () async {
@@ -1057,7 +1056,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         SizedBox(
           height: 40,
           child: DropdownButtonFormField<String>(
-            value: _selectedCategory,
+            initialValue: _selectedCategory,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1082,7 +1081,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -1112,7 +1111,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         SizedBox(
           height: 40,
           child: DropdownButtonFormField<String>(
-            value: _selectedPaymentMethod == 'all' ? null : _selectedPaymentMethod,
+            initialValue: _selectedPaymentMethod == 'all' ? null : _selectedPaymentMethod,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1136,7 +1135,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -1166,7 +1165,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         SizedBox(
           height: 40,
           child: DropdownButtonFormField<String>(
-            value: _selectedDateRange == null ? null : 'custom',
+            initialValue: _selectedDateRange == null ? null : 'custom',
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -7,7 +7,7 @@ void main() {
 }
 
 class CategoryTestApp extends StatelessWidget {
-  const CategoryTestApp({Key? key}) : super(key: key);
+  const CategoryTestApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class CategoryTestApp extends StatelessWidget {
 }
 
 class CategoryTestScreen extends StatefulWidget {
-  const CategoryTestScreen({Key? key}) : super(key: key);
+  const CategoryTestScreen({super.key});
 
   @override
   State<CategoryTestScreen> createState() => _CategoryTestScreenState();

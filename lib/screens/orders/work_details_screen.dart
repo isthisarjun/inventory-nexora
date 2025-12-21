@@ -8,11 +8,11 @@ class WorkDetailsScreen extends StatefulWidget {
   final String? materials;
 
   const WorkDetailsScreen({
-    Key? key,
+    super.key,
     this.customerId,
     this.items,
     this.materials,
-  }) : super(key: key);
+  });
 
   @override
   State<WorkDetailsScreen> createState() => _WorkDetailsScreenState();

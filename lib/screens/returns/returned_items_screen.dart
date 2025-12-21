@@ -7,7 +7,7 @@ import '../../services/excel_service.dart';
 import 'package:go_router/go_router.dart';
 
 class ReturnedItemsScreen extends StatefulWidget {
-  const ReturnedItemsScreen({Key? key}) : super(key: key);
+  const ReturnedItemsScreen({super.key});
 
   @override
   State<ReturnedItemsScreen> createState() => _ReturnedItemsScreenState();
@@ -39,10 +39,6 @@ class _ReturnedItemsScreenState extends State<ReturnedItemsScreen> {
       final bytes = await file.readAsBytes();
       final excel = Excel.decodeBytes(bytes);
       final sheet = excel['Returns'];
-      if (sheet == null) {
-        setState(() { _rows = []; _isLoading = false; });
-        return;
-      }
       setState(() {
         _rows = sheet.rows;
         _isLoading = false;

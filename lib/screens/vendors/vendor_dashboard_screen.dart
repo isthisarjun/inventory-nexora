@@ -238,7 +238,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Container(
+                    SizedBox(
                       width: double.infinity,
                       child: Text(
                         widget.vendorName,
@@ -252,7 +252,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     if (_vendorData!['email']?.toString().isNotEmpty == true)
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: Row(
                           children: [
@@ -272,7 +272,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         ),
                       ),
                     if (_vendorData!['website']?.toString().isNotEmpty == true)
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: Row(
                           children: [
@@ -296,7 +296,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         ),
                       ),
                     const SizedBox(height: 8),
-                    Container(
+                    SizedBox(
                       width: double.infinity,
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,7 +376,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 ),
               ] else ...[
                 // Credit Usage Display (No Pie Chart)
-                Container(
+                SizedBox(
                   width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -401,7 +401,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       const SizedBox(height: 16),
                       
                       // Credit Utilization Bar
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,7 +533,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                     final date = purchase['date']?.toString() ?? '';
                     final paymentStatus = purchase['paymentStatus']?.toString() ?? '';
                     final totalAmount = purchase['totalAmount'] as double? ?? 0.0;
-                    return Container(
+                    return SizedBox(
                       width: double.infinity,
                       child: ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -544,7 +544,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                             color: Colors.orange[600],
                           ),
                         ),
-                        title: Container(
+                        title: SizedBox(
                           width: double.infinity,
                           child: Text(
                             'Purchase ID: $purchaseId',
@@ -552,7 +552,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                             textAlign: TextAlign.start,
                           ),
                         ),
-                        subtitle: Container(
+                        subtitle: SizedBox(
                           width: double.infinity,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,12 +759,12 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               ),
               const SizedBox(height: 20),
               
-              Container(
+              SizedBox(
                 width: double.infinity,
                 height: 200,
                 child: _vendorTransactions.isEmpty
                     ? Center(
-                        child: Container(
+                        child: SizedBox(
                           width: double.infinity,
                           child: Text(
                             'No payment history available',
@@ -958,7 +958,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           ),
           titlePadding: EdgeInsets.zero,
           contentPadding: const EdgeInsets.all(24),
-          content: Container(
+          content: SizedBox(
             width: 400,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1058,7 +1058,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedPaymentMethod,
+                        initialValue: _selectedPaymentMethod,
                         decoration: InputDecoration(
                           labelText: 'Payment Method',
                           prefixIcon: const Icon(Icons.payment, size: 20),
@@ -1356,7 +1356,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             const Text('Vendor Website'),
           ],
         ),
-        content: Container(
+        content: SizedBox(
           width: double.infinity,
           child: Column(
             mainAxisSize: MainAxisSize.min,

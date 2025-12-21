@@ -4,7 +4,7 @@ import '../../services/excel_service.dart';
 // Removed import 'new_sale_screen.dart'; as NewSaleScreen class doesn't exist
 
 class AllSalesRecordsScreen extends StatefulWidget {
-  const AllSalesRecordsScreen({Key? key}) : super(key: key);
+  const AllSalesRecordsScreen({super.key});
 
   @override
   State<AllSalesRecordsScreen> createState() => _AllSalesRecordsScreenState();
@@ -390,7 +390,7 @@ class _AllSalesRecordsScreenState extends State<AllSalesRecordsScreen> {
                             horizontalMargin: 16,
                             headingRowHeight: 56,
                             dataRowHeight: 48,
-                            headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
+                            headingRowColor: WidgetStateProperty.all(Colors.grey[200]),
                             columns: [
                               DataColumn(
                                 label: _buildSortableHeader('Sale ID', 'saleId', width: 80),

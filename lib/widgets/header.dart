@@ -7,12 +7,12 @@ class Header extends StatelessWidget {
   final VoidCallback? onBackPressed;
 
   const Header({
-    Key? key,
+    super.key,
     required this.title,
     this.actions,
     this.showBackButton = false,
     this.onBackPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

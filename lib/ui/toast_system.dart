@@ -175,10 +175,10 @@ class ToastManager extends StatefulWidget {
   final int maxToasts;
 
   const ToastManager({
-    Key? key,
+    super.key,
     required this.child,
     this.maxToasts = 3,
-  }) : super(key: key);
+  });
 
   @override
   State<ToastManager> createState() => _ToastManagerState();

@@ -144,7 +144,7 @@ class _LedgerScreenState extends State<LedgerScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedAccount,
+                        initialValue: _selectedAccount,
                         decoration: const InputDecoration(
                           labelText: 'Account',
                           border: OutlineInputBorder(),

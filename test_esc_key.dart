@@ -6,6 +6,8 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -16,6 +18,8 @@ class MyApp extends StatelessWidget {
 }
 
 class EscKeyTestScreen extends StatefulWidget {
+  const EscKeyTestScreen({super.key});
+
   @override
   _EscKeyTestScreenState createState() => _EscKeyTestScreenState();
 }

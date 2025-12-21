@@ -45,7 +45,7 @@ class DataTable extends StatelessWidget {
   final double borderRadius;
 
   const DataTable({
-    Key? key,
+    super.key,
     required this.columns,
     required this.data,
     this.onRowTap,
@@ -60,7 +60,7 @@ class DataTable extends StatelessWidget {
     this.emptyState,
     this.horizontalScroll = false,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -302,10 +302,10 @@ class TableEmptyState extends StatelessWidget {
   final IconData? icon;
 
   const TableEmptyState({
-    Key? key,
+    super.key,
     this.message = 'No data available',
     this.icon = Icons.inbox,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

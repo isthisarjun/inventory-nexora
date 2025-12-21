@@ -6,7 +6,7 @@ import '../../theme/colors.dart';
 import '../../widgets/button.dart';
 
 class VatReportScreen extends StatefulWidget {
-  const VatReportScreen({Key? key}) : super(key: key);
+  const VatReportScreen({super.key});
 
   @override
   State<VatReportScreen> createState() => _VatReportScreenState();
@@ -114,19 +114,17 @@ class _VatReportScreenState extends State<VatReportScreen> {
         _isLoading = false;
       });
 
-      if (filePath != null) {
-        await Share.shareXFiles([XFile(filePath)]);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('VAT report exported successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+      await Share.shareXFiles([XFile(filePath)]);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('VAT report exported successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-    } catch (e) {
+        } catch (e) {
       setState(() {
         _isLoading = false;
       });

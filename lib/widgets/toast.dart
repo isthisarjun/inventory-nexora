@@ -121,9 +121,9 @@ class ToastManager extends StatefulWidget {
   final Widget child;
 
   const ToastManager({
-    Key? key,
+    super.key,
     required this.child,
-  }) : super(key: key);
+  });
 
   @override
   State<ToastManager> createState() => _ToastManagerState();

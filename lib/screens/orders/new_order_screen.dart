@@ -34,7 +34,7 @@ class OrderItem {
 }
 
 class NewOrderScreen extends StatefulWidget {
-  const NewOrderScreen({Key? key}) : super(key: key);
+  const NewOrderScreen({super.key});
 
   @override
   State<NewOrderScreen> createState() => _NewOrderScreenState();
@@ -70,7 +70,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   bool _isLoadingItems = true;
   
   // Order items list
-  List<OrderItem> _orderItems = [OrderItem()];
+  final List<OrderItem> _orderItems = [OrderItem()];
   
   @override
   void initState() {
@@ -855,7 +855,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                               ),
                               Switch(
                                 value: tempIsPaid,
-                                activeColor: Colors.green,
+                                activeThumbColor: Colors.green,
                                 activeTrackColor: Colors.green[200],
                                 inactiveThumbColor: Colors.orange,
                                 inactiveTrackColor: Colors.orange[200],
@@ -929,7 +929,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: tempPaymentMethod,
+                        initialValue: tempPaymentMethod,
                         items: _paymentMethods.map((String method) {
                           return DropdownMenuItem<String>(
                             value: method,
@@ -1559,7 +1559,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                             focusNode: FocusNode(),
                             onKey: (event) => _handleKeyNavigation(event, orderItem.itemDropdownFocus),
                             child: DropdownButtonFormField<Map<String, dynamic>>(
-                            value: orderItem.selectedItem,
+                            initialValue: orderItem.selectedItem,
                             focusNode: orderItem.itemDropdownFocus,
                             decoration: const InputDecoration(
                               labelText: 'Select Item *',
@@ -1595,7 +1595,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                           onChanged: (value) => _onItemSelected(value, index),
                           validator: (value) {

@@ -258,7 +258,7 @@ class ExcelService {
         if (row.isEmpty) continue;
         
         // Read customer data from each column
-        String id = row.length > 0 ? (row[0]?.value?.toString() ?? '') : '';
+        String id = row.isNotEmpty ? (row[0]?.value?.toString() ?? '') : '';
         String name = row.length > 1 ? (row[1]?.value?.toString() ?? '') : '';
         String phone = row.length > 2 ? (row[2]?.value?.toString() ?? '') : '';
         String email = row.length > 3 ? (row[3]?.value?.toString() ?? '') : '';
@@ -541,7 +541,7 @@ class ExcelService {
           if (row.isNotEmpty && row[0]?.value != null) {
             // Safely access columns with bounds checking
             orders.add({
-              'orderId': row.length > 0 ? row[0]?.value?.toString() ?? '' : '',
+              'orderId': row.isNotEmpty ? row[0]?.value?.toString() ?? '' : '',
               'customerName': row.length > 1 ? row[1]?.value?.toString() ?? '' : '', // Fixed: Customer name is in column 1
               'customerId': row.length > 1 ? row[1]?.value?.toString() ?? '' : '', // Also store as customerId for compatibility
               'orderDate': row.length > 3 ? row[3]?.value?.toString() ?? '' : '', // Fixed: Order date is in column 3
@@ -1506,7 +1506,7 @@ class ExcelService {
           }
         }
         
-        print('Sale recorded: ${itemName} | Qty: ${quantitySold} | Selling: BHD ${sellingPrice.toStringAsFixed(2)} (VAT-incl, Col H) | VAT: BHD ${vatAmountFromSale.toStringAsFixed(2)} (Col I) | Selling (No VAT): BHD ${totalSellingPriceWithoutVAT.toStringAsFixed(2)} (Col J) | WAC Cost: BHD ${wacCostPrice.toStringAsFixed(2)} (Col G) | Profit: BHD ${totalProfit.toStringAsFixed(2)} (Col M) | Payment: ${saleData['paymentStatus'] ?? 'Paid'} - ${saleData['paymentMethod'] ?? 'N/A'}');
+        print('Sale recorded: $itemName | Qty: $quantitySold | Selling: BHD ${sellingPrice.toStringAsFixed(2)} (VAT-incl, Col H) | VAT: BHD ${vatAmountFromSale.toStringAsFixed(2)} (Col I) | Selling (No VAT): BHD ${totalSellingPriceWithoutVAT.toStringAsFixed(2)} (Col J) | WAC Cost: BHD ${wacCostPrice.toStringAsFixed(2)} (Col G) | Profit: BHD ${totalProfit.toStringAsFixed(2)} (Col M) | Payment: ${saleData['paymentStatus'] ?? 'Paid'} - ${saleData['paymentMethod'] ?? 'N/A'}');
         
         // Also save this sale as a transaction for revenue tracking
         await saveTransactionToExcel(
@@ -1515,7 +1515,7 @@ class ExcelService {
               ? saleData['customerName'] 
               : 'Walk-in Customer',
           amount: totalSaleAmount, // Positive amount for revenue
-          description: 'Sale of ${quantitySold}x ${itemName}',
+          description: 'Sale of ${quantitySold}x $itemName',
           reference: saleData['saleId']?.toString() ?? '',
           category: 'Sales Revenue',
           transactionDate: saleData['date'] != null 
@@ -1949,7 +1949,7 @@ class ExcelService {
           'qtyAfter': batchQtyAvailable - qtyToTakeFromThisBatch,
         });
         
-        print('  - From Purchase ${batch['purchaseDate']}: ${qtyToTakeFromThisBatch} units @ BHD ${batchCostPrice} (WAC) = BHD ${batchCost.toStringAsFixed(2)}');
+        print('  - From Purchase ${batch['purchaseDate']}: $qtyToTakeFromThisBatch units @ BHD $batchCostPrice (WAC) = BHD ${batchCost.toStringAsFixed(2)}');
         
         // Update or delete the row in Excel
         final newQty = batchQtyAvailable - qtyToTakeFromThisBatch;
@@ -1961,7 +1961,7 @@ class ExcelService {
           // Update the quantity in the row
           final cell = sheet.cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: batch['rowIndex']));
           cell.value = newQty;
-          print('    Updated quantity to ${newQty}');
+          print('    Updated quantity to $newQty');
         }
         
         remainingToSell -= qtyToTakeFromThisBatch;
@@ -1979,7 +1979,7 @@ class ExcelService {
       print('  WAC-FIFO Summary: Total Cost = BHD ${totalCost.toStringAsFixed(2)}, Weighted Avg Cost = BHD ${weightedAverageCost.toStringAsFixed(2)}');
       
       if (remainingToSell > 0) {
-        print('Warning: Insufficient stock for item $itemId. Could not fulfill ${remainingToSell} units');
+        print('Warning: Insufficient stock for item $itemId. Could not fulfill $remainingToSell units');
       }
       
       return {
@@ -2350,7 +2350,6 @@ class ExcelService {
     final bytes = await file.readAsBytes();
     final excel = Excel.decodeBytes(bytes);
     final sheet = excel['VAT_Report_Data'];
-    if (sheet == null) return {};
 
     double standardRatedSales = 0.0;
     double vatOnSales = 0.0;
@@ -2402,7 +2401,6 @@ class ExcelService {
     final bytes = await file.readAsBytes();
     final excel = Excel.decodeBytes(bytes);
     final sheet = excel['VAT_Report_Data'];
-    if (sheet == null) return [];
     final List<Map<String, dynamic>> transactions = [];
     for (int i = 1; i < sheet.maxRows; i++) {
       final row = sheet.row(i);
@@ -2571,7 +2569,7 @@ class ExcelService {
       int targetRow = -1;
       for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
         final row = sheet.row(rowIndex);
-        if (row.isNotEmpty && row.length >= 1) {
+        if (row.isNotEmpty && row.isNotEmpty) {
           final existingId = row[0]?.value?.toString() ?? '';
           if (existingId == vendorId) {
             targetRow = rowIndex;
@@ -2638,7 +2636,7 @@ class ExcelService {
       int targetRow = -1;
       for (int rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
         final row = sheet.row(rowIndex);
-        if (row.isNotEmpty && row.length >= 1) {
+        if (row.isNotEmpty && row.isNotEmpty) {
           final existingId = row[0]?.value?.toString() ?? '';
           if (existingId == vendorId) {
             targetRow = rowIndex;
@@ -4459,7 +4457,7 @@ class ExcelService {
       print('Vendor added successfully: $vendorName');
     } catch (e) {
       print('Error adding vendor: $e');
-      throw e;
+      rethrow;
     }
   }
 

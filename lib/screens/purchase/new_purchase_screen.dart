@@ -23,7 +23,7 @@ class _NewPurchaseScreenState extends State<NewPurchaseScreen> {
   // Data lists
   List<Map<String, dynamic>> _vendors = [];
   List<Map<String, dynamic>> _inventoryItems = [];
-  List<Map<String, dynamic>> _purchaseItems = [];
+  final List<Map<String, dynamic>> _purchaseItems = [];
   
   // Selected values
   String? _selectedVendorId;
@@ -459,7 +459,7 @@ class _NewPurchaseScreenState extends State<NewPurchaseScreen> {
 
   Widget _buildVendorDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedVendorId,
+      initialValue: _selectedVendorId,
       decoration: InputDecoration(
         labelText: 'Vendor ID *',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -598,7 +598,7 @@ class _NewPurchaseScreenState extends State<NewPurchaseScreen> {
 
   Widget _buildItemDropdown() {
     return DropdownButtonFormField<String>(
-      value: _selectedItemId,
+      initialValue: _selectedItemId,
       decoration: InputDecoration(
         labelText: 'Item ID *',
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -844,7 +844,7 @@ class _NewPurchaseScreenState extends State<NewPurchaseScreen> {
               _isPaid = value;
             });
           },
-          activeColor: AppColors.primary,
+          activeThumbColor: AppColors.primary,
         ),
         if (!_isPaid)
           Container(

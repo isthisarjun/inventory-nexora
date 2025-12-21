@@ -48,7 +48,7 @@ class Accordion extends StatefulWidget {
   final Color? iconColor;
 
   const Accordion({
-    Key? key,
+    super.key,
     required this.title,
     this.subtitle,
     required this.content,
@@ -64,7 +64,7 @@ class Accordion extends StatefulWidget {
     this.titleStyle,
     this.subtitleStyle,
     this.iconColor,
-  }) : super(key: key);
+  });
 
   @override
   State<Accordion> createState() => _AccordionState();
@@ -261,7 +261,7 @@ class AccordionGroup extends StatefulWidget {
   final Function(int, bool)? onToggle;
 
   const AccordionGroup({
-    Key? key,
+    super.key,
     required this.items,
     this.initiallyExpandedIndex,
     this.spacing = 8.0,
@@ -269,7 +269,7 @@ class AccordionGroup extends StatefulWidget {
     this.headerBackgroundColor,
     this.contentBackgroundColor,
     this.onToggle,
-  }) : super(key: key);
+  });
 
   @override
   State<AccordionGroup> createState() => _AccordionGroupState();

@@ -20,8 +20,8 @@ void main() {
   
   print('\n--- Column J Calculation ---');
   print('VAT Amount per unit: BHD ${vatAmountPerUnit.toStringAsFixed(2)}');
-  print('Selling Price without VAT per unit: ${sellingPriceVATInclusive} - ${vatAmountPerUnit.toStringAsFixed(2)} = BHD ${sellingPriceWithoutVAT.toStringAsFixed(2)}');
-  print('Total Selling Price without VAT (Column J): ${sellingPriceWithoutVAT.toStringAsFixed(2)} × ${quantity} = BHD ${totalSellingPriceWithoutVAT.toStringAsFixed(2)}');
+  print('Selling Price without VAT per unit: $sellingPriceVATInclusive - ${vatAmountPerUnit.toStringAsFixed(2)} = BHD ${sellingPriceWithoutVAT.toStringAsFixed(2)}');
+  print('Total Selling Price without VAT (Column J): ${sellingPriceWithoutVAT.toStringAsFixed(2)} × $quantity = BHD ${totalSellingPriceWithoutVAT.toStringAsFixed(2)}');
   
   // Calculate profit using the selling price without VAT
   final profitPerUnit = sellingPriceWithoutVAT - wacCostPrice;
@@ -29,8 +29,8 @@ void main() {
   
   print('\n--- Profit Calculation (Now Column M) ---');
   print('Profit per unit = Selling Price (No VAT) - Cost Price');
-  print('Profit per unit = ${sellingPriceWithoutVAT.toStringAsFixed(2)} - ${wacCostPrice} = BHD ${profitPerUnit.toStringAsFixed(2)}');
-  print('Total Profit = ${profitPerUnit.toStringAsFixed(2)} × ${quantity} = BHD ${totalProfit.toStringAsFixed(2)}');
+  print('Profit per unit = ${sellingPriceWithoutVAT.toStringAsFixed(2)} - $wacCostPrice = BHD ${profitPerUnit.toStringAsFixed(2)}');
+  print('Total Profit = ${profitPerUnit.toStringAsFixed(2)} × $quantity = BHD ${totalProfit.toStringAsFixed(2)}');
   
   // Calculate other totals
   final totalCost = quantity * wacCostPrice;
@@ -71,7 +71,7 @@ void main() {
   print('Column I (VAT Amount): ${saleValues[8]} BHD');
   print('Column J (Selling Price No VAT): ${saleValues[9]} BHD');
   print('Formula: Column J = (Column H - Column I/Qty) × Qty');
-  print('Verification: (${saleValues[7]} - ${saleValues[8]}/${quantity}) × ${quantity} = ${saleValues[9]}');
+  print('Verification: (${saleValues[7]} - ${saleValues[8]}/$quantity) × $quantity = ${saleValues[9]}');
   
   // Verify the calculation
   final calculatedJ = ((saleValues[7] as double) - (saleValues[8] as double) / quantity) * quantity;

@@ -36,7 +36,7 @@ class Card extends StatelessWidget {
   final double borderRadius;
   
   const Card({
-    Key? key,
+    super.key,
     this.child,
     this.header,
     this.title,
@@ -48,7 +48,7 @@ class Card extends StatelessWidget {
     this.padding,
     this.margin,
     this.borderRadius = 8.0,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,11 +132,11 @@ class CardHeader extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const CardHeader({
-    Key? key,
+    super.key,
     this.child,
     this.backgroundColor,
     this.padding = const EdgeInsets.all(16.0),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -164,11 +164,11 @@ class CardFooter extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const CardFooter({
-    Key? key,
+    super.key,
     this.child,
     this.backgroundColor,
     this.padding = const EdgeInsets.all(16.0),
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -195,10 +195,10 @@ class CardTitle extends StatelessWidget {
   final TextStyle? style;
 
   const CardTitle({
-    Key? key,
+    super.key,
     required this.text,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -219,10 +219,10 @@ class CardDescription extends StatelessWidget {
   final TextStyle? style;
 
   const CardDescription({
-    Key? key,
+    super.key,
     required this.text,
     this.style,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

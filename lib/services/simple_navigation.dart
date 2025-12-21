@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Simple navigation service for ESC key handling
 /// ESC key simulates the back arrow button behavior

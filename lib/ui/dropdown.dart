@@ -48,7 +48,7 @@ class DropdownMenu<T> extends StatefulWidget {
   final String? noOptionsMessage;
 
   const DropdownMenu({
-    Key? key,
+    super.key,
     this.value,
     this.onChanged,
     required this.options,
@@ -64,7 +64,7 @@ class DropdownMenu<T> extends StatefulWidget {
     this.textStyle,
     this.alignMenuToLeft = true,
     this.noOptionsMessage,
-  }) : super(key: key);
+  });
 
   @override
   State<DropdownMenu<T>> createState() => _DropdownMenuState<T>();
@@ -275,13 +275,13 @@ class _DropdownItem<T> extends StatelessWidget {
   final TextStyle? textStyle;
 
   const _DropdownItem({
-    Key? key,
+    super.key,
     required this.option,
     required this.isSelected,
     required this.onTap,
     this.textColor,
     this.textStyle,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

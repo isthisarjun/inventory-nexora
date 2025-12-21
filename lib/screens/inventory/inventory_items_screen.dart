@@ -482,7 +482,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 60,
                                         child: KeyboardListener(
                                           focusNode: FocusNode(),
@@ -524,7 +524,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 60,
                                         child: KeyboardListener(
                                           focusNode: FocusNode(),
@@ -566,7 +566,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 60,
                                         child: KeyboardListener(
                                           focusNode: FocusNode(),
@@ -618,7 +618,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 60,
                                         child: KeyboardListener(
                                           focusNode: FocusNode(),
@@ -664,7 +664,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: Container(
+                                      child: SizedBox(
                                         height: 60,
                                         child: KeyboardListener(
                                           focusNode: FocusNode(),

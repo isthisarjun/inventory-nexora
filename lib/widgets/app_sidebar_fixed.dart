@@ -7,9 +7,9 @@ class AppSidebar extends StatelessWidget {
   final String currentRoute;
 
   const AppSidebar({
-    Key? key,
+    super.key,
     required this.currentRoute,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

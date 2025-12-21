@@ -8,10 +8,10 @@ class CategoryManagementWidget extends StatefulWidget {
   final Function(String?) onCategoryChanged;
 
   const CategoryManagementWidget({
-    Key? key,
+    super.key,
     required this.selectedCategory,
     required this.onCategoryChanged,
-  }) : super(key: key);
+  });
 
   @override
   _CategoryManagementWidgetState createState() => _CategoryManagementWidgetState();
@@ -162,7 +162,7 @@ class _CategoryManagementWidgetState extends State<CategoryManagementWidget> {
         Expanded(
           child: DropdownButtonFormField<String>(
             key: _dropdownKey, // Add the key here to force rebuild
-            value: widget.selectedCategory,
+            initialValue: widget.selectedCategory,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -245,7 +245,7 @@ class _CategoryManagementWidgetState extends State<CategoryManagementWidget> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               if (value == '__ADD_NEW__') {

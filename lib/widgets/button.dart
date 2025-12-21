@@ -27,7 +27,7 @@ class Button extends StatelessWidget {
   final bool disabled;
 
   const Button({
-    Key? key,
+    super.key,
     required this.text,
     this.onPressed,
     this.variant = ButtonVariant.primary,
@@ -36,7 +36,7 @@ class Button extends StatelessWidget {
     this.isFullWidth = false,
     this.isLoading = false,
     this.disabled = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

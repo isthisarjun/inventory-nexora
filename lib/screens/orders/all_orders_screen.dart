@@ -5,7 +5,7 @@ import 'package:tailor_v3/routes/app_routes.dart';
 import 'package:tailor_v3/services/excel_service.dart';
 
 class AllOrdersScreen extends StatefulWidget {
-  const AllOrdersScreen({Key? key}) : super(key: key);
+  const AllOrdersScreen({super.key});
 
   @override
   State<AllOrdersScreen> createState() => _AllOrdersScreenState();
@@ -259,7 +259,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '${_formatDate(order['orderDate'])}',
+                                  _formatDate(order['orderDate']),
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.white.withOpacity(0.9),
@@ -666,7 +666,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                                         ],
                                                       ),
                                                     ),
-                                                    Container(
+                                                    SizedBox(
                                                       width: 80,
                                                       child: TextFormField(
                                                         initialValue: returnItems[index]!['returnQuantity'].toString(),
@@ -889,7 +889,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
               ...returnItems.values.map((item) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Text('• ${item['itemName']}: ${item['returnQuantity'].toStringAsFixed(1)} units'),
-              )).toList(),
+              )),
               const SizedBox(height: 12),
               if (returnReason.isNotEmpty) ...[
                 const Text('Return Reason:', style: TextStyle(fontWeight: FontWeight.bold)),

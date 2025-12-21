@@ -35,8 +35,8 @@ void main() {
   final alternativeProfit = (sellingPrice * quantity) - vatAmountTotal - (wacCostPrice * quantity);
   print('\n--- Alternative Calculation ---');
   print('Total Profit = (Selling Price × Qty) - Total VAT - (Cost Price × Qty)');
-  print('Total Profit = (${sellingPrice} × ${quantity}) - ${vatAmountTotal} - (${wacCostPrice} × ${quantity})');
-  print('Total Profit = ${sellingPrice * quantity} - ${vatAmountTotal} - ${wacCostPrice * quantity}');
+  print('Total Profit = ($sellingPrice × $quantity) - $vatAmountTotal - ($wacCostPrice × $quantity)');
+  print('Total Profit = ${sellingPrice * quantity} - $vatAmountTotal - ${wacCostPrice * quantity}');
   print('Total Profit = BHD ${alternativeProfit.toStringAsFixed(2)}');
   
   // Verify both methods give the same result
@@ -76,7 +76,7 @@ void main() {
   ];
   
   print('Column J (Profit): ${saleValues[9]} BHD');
-  print('Formula verification: (${saleValues[7]} - ${saleValues[8]}/${quantity} - ${saleValues[6]}) × ${quantity} = ${saleValues[9]}');
+  print('Formula verification: (${saleValues[7]} - ${saleValues[8]}/$quantity - ${saleValues[6]}) × $quantity = ${saleValues[9]}');
   
   print('\n=== Test Complete ===');
 }

@@ -14,7 +14,7 @@ class OrderSummaryScreen extends StatefulWidget {
   final bool? includeVat; // New parameter for VAT inclusion
 
   const OrderSummaryScreen({
-    Key? key,
+    super.key,
     required this.customerId,
     required this.items,
     required this.materials,
@@ -22,7 +22,7 @@ class OrderSummaryScreen extends StatefulWidget {
     this.labourCost,
     this.dueDate,
     this.includeVat = true, // Default to include VAT
-  }) : super(key: key);
+  });
 
   @override
   State<OrderSummaryScreen> createState() => _OrderSummaryScreenState();
@@ -43,7 +43,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
   
   // VAT-related state variables
   bool _includeVat = true;
-  double _vatRate = 0.10; // 10% VAT rate
+  final double _vatRate = 0.10; // 10% VAT rate
   double _vatAmount = 0.0;
   double _subtotal = 0.0;
 
@@ -1082,7 +1082,7 @@ class _OrderSummaryScreenState extends State<OrderSummaryScreen> {
                                 _calculateTotalCost();
                               });
                             },
-                            activeColor: Theme.of(context).colorScheme.primary,
+                            activeThumbColor: Theme.of(context).colorScheme.primary,
                           ),
                         ],
                       ),
