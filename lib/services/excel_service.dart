@@ -2342,19 +2342,114 @@ class ExcelService {
   }
   
   Future<Map<String, dynamic>> calculateVatSummary({DateTime? startDate, DateTime? endDate}) async {
-    print('calculateVatSummary: Not implemented yet');
-    return {};
+    // Reads inventory_vat_report.xlsx and aggregates summary
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/inventory_vat_report.xlsx';
+    final file = File(filePath);
+    if (!await file.exists()) return {};
+    final bytes = await file.readAsBytes();
+    final excel = Excel.decodeBytes(bytes);
+    final sheet = excel['VAT_Report_Data'];
+    if (sheet == null) return {};
+
+    double standardRatedSales = 0.0;
+    double vatOnSales = 0.0;
+    double totalSales = 0.0;
+    double standardRatedPurchases = 0.0;
+    double vatOnPurchases = 0.0;
+    double totalPurchases = 0.0;
+    // Add more fields as needed
+
+    for (int i = 1; i < sheet.maxRows; i++) {
+      final row = sheet.row(i);
+      if (row.isEmpty || row[0]?.value == null) continue;
+      final date = _parseDateValue(row, {"transaction_date": 1}, "transaction_date");
+      if (startDate != null && endDate != null && date != null) {
+        if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
+      }
+      final type = row[2]?.value?.toString().toUpperCase() ?? '';
+      final netAmount = double.tryParse(row[6]?.value?.toString() ?? '0') ?? 0.0;
+      final vatAmount = double.tryParse(row[7]?.value?.toString() ?? '0') ?? 0.0;
+      final grossAmount = double.tryParse(row[8]?.value?.toString() ?? '0') ?? 0.0;
+      if (type == 'SALE') {
+        standardRatedSales += netAmount;
+        vatOnSales += vatAmount;
+        totalSales += grossAmount;
+      } else if (type == 'PURCHASE') {
+        standardRatedPurchases += netAmount;
+        vatOnPurchases += vatAmount;
+        totalPurchases += grossAmount;
+      }
+    }
+    double netVatDue = vatOnSales - vatOnPurchases;
+    return {
+      'standardRatedSales': standardRatedSales,
+      'vatOnSales': vatOnSales,
+      'totalSales': totalSales,
+      'standardRatedPurchases': standardRatedPurchases,
+      'vatOnPurchases': vatOnPurchases,
+      'totalPurchases': totalPurchases,
+      'netVatDue': netVatDue,
+    };
   }
-  
+
   Future<List<Map<String, dynamic>>> loadVatTransactions({DateTime? startDate, DateTime? endDate, String? type}) async {
-    print('loadVatTransactions: Not implemented yet');
-    return [];
+    // Reads inventory_vat_report.xlsx and returns transactions
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/inventory_vat_report.xlsx';
+    final file = File(filePath);
+    if (!await file.exists()) return [];
+    final bytes = await file.readAsBytes();
+    final excel = Excel.decodeBytes(bytes);
+    final sheet = excel['VAT_Report_Data'];
+    if (sheet == null) return [];
+    final List<Map<String, dynamic>> transactions = [];
+    for (int i = 1; i < sheet.maxRows; i++) {
+      final row = sheet.row(i);
+      if (row.isEmpty || row[0]?.value == null) continue;
+      final date = _parseDateValue(row, {"transaction_date": 1}, "transaction_date");
+      if (startDate != null && endDate != null && date != null) {
+        if (date.isBefore(startDate) || date.isAfter(endDate)) continue;
+      }
+      final transactionType = row[2]?.value?.toString().toUpperCase() ?? '';
+      if (type != null && transactionType != type.toUpperCase()) continue;
+      transactions.add({
+        'transaction_id': row[0]?.value?.toString() ?? '',
+        'date': date,
+        'transaction_type': transactionType,
+        'document_number': row[3]?.value?.toString() ?? '',
+        'party_name': row[4]?.value?.toString() ?? '',
+        'description': row[5]?.value?.toString() ?? '',
+        'net_amount': double.tryParse(row[6]?.value?.toString() ?? '0') ?? 0.0,
+        'vat_amount': double.tryParse(row[7]?.value?.toString() ?? '0') ?? 0.0,
+        'gross_amount': double.tryParse(row[8]?.value?.toString() ?? '0') ?? 0.0,
+        'is_vat_applicable': row[9]?.value?.toString() ?? '',
+        'is_recoverable': row[10]?.value?.toString() ?? '',
+        'vat_period': row[11]?.value?.toString() ?? '',
+        'reporting_year': row[12]?.value?.toString() ?? '',
+        'adjustment_type': row[13]?.value?.toString() ?? '',
+        'related_document': row[14]?.value?.toString() ?? '',
+        'adjustment_reason': row[15]?.value?.toString() ?? '',
+        // For UI compatibility:
+        'trn': row[0]?.value?.toString() ?? '',
+        'taxableValue': double.tryParse(row[6]?.value?.toString() ?? '0') ?? 0.0,
+        'vatAmount': double.tryParse(row[7]?.value?.toString() ?? '0') ?? 0.0,
+      });
+    }
+    return transactions;
   }
-  
+
   Future<String> exportVatReportToExcel({DateTime? startDate, DateTime? endDate, String? filename}) async {
-    // TODO: Implement VAT report export - use inventory_vat_report_[timestamp].xlsx naming
-    print('exportVatReportToExcel: Not implemented yet');
-    return '';
+    // Copies the VAT report file to a new file for export/sharing
+    final directory = await getApplicationDocumentsDirectory();
+    final srcPath = '${directory.path}/inventory_vat_report.xlsx';
+    final srcFile = File(srcPath);
+    if (!await srcFile.exists()) return '';
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final destName = filename ?? 'inventory_vat_report_$ts.xlsx';
+    final destPath = '${directory.path}/$destName';
+    await srcFile.copy(destPath);
+    return destPath;
   }
   
   // Missing getters for test file
