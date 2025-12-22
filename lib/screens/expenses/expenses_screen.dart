@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'dart:io';
-import 'dart:convert';
-import 'package:path_provider/path_provider.dart';
+// Removed unused imports: dart:io, dart:convert, path_provider
 import '../../services/excel_service.dart';
 
 class ExpensesScreen extends StatefulWidget {
@@ -34,110 +32,19 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     'Professional Services',
     'Insurance',
     'Taxes',
-    'Maintenance',
-    'Other'
+    'Other',
   ];
 
   final List<String> _paymentMethods = [
     'Cash',
-    'Bank Transfer',
     'Credit Card',
     'Debit Card',
+    'Bank Transfer',
     'Check',
-    'Online Payment'
+    'Online Payment',
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadExpenses();
-    _loadAvailableCategories();
-  }
-
-  Future<void> _loadAvailableCategories() async {
-    try {
-      final documentsDir = await getApplicationDocumentsDirectory();
-      final categoriesFile = File('${documentsDir.path}/expense_categories.json');
-      
-      if (await categoriesFile.exists()) {
-        final jsonString = await categoriesFile.readAsString();
-        final List<dynamic> jsonList = json.decode(jsonString);
-        setState(() {
-          _availableCategories = jsonList.cast<String>();
-        });
-      } else {
-        // Use default categories if file doesn't exist
-        setState(() {
-          _availableCategories = _expenseCategories;
-        });
-      }
-    } catch (e) {
-      print('Error loading available categories: $e');
-      setState(() {
-        _availableCategories = _expenseCategories;
-      });
-    }
-  }
-
-  Future<void> _loadExpenses() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // Fetch all transactions from transaction_details Excel sheet
-      final allTransactions = await _excelService.getAllTransactionsFromExcel();
-      
-      // Filter only expense transactions (Flow Type = "Expense")
-      final expenseTransactions = allTransactions.where((transaction) {
-        return transaction['flowType']?.toString().toLowerCase() == 'expense';
-      }).toList();
-
-      // Convert transaction format to expense format for display
-      final expenses = expenseTransactions.map((transaction) {
-        return {
-          'expenseId': transaction['reference'] ?? transaction['transactionId'],
-          'description': transaction['description'] ?? '',
-          'vendorName': transaction['partyName'] ?? '',
-          'amount': double.tryParse(transaction['amount']?.toString() ?? '0')?.abs() ?? 0.0,
-          'category': transaction['category'] ?? 'Other',
-          'paymentMethod': 'Unknown', // Not stored in transaction_details
-          'expenseDate': transaction['dateTime'] ?? '',
-          'reference': transaction['reference'] ?? '',
-          'transactionType': transaction['transactionType'] ?? 'expense',
-        };
-      }).toList();
-
-      // Sort by date (newest first)
-      expenses.sort((a, b) {
-        try {
-          final dateA = DateTime.parse(a['expenseDate'].toString().split(' ')[0]);
-          final dateB = DateTime.parse(b['expenseDate'].toString().split(' ')[0]);
-          return dateB.compareTo(dateA);
-        } catch (e) {
-          return 0;
-        }
-      });
-
-      setState(() {
-        _expenses = expenses;
-        _filteredExpenses = expenses;
-        _isLoading = false;
-      });
-      
-      print('Loaded ${expenses.length} expense transactions from transaction_details');
-      _applyFilters();
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading expenses: $e')),
-        );
-      }
-    }
-  }
+  // Removed duplicate build method
 
   void _applyFilters() {
     setState(() {
@@ -496,6 +403,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
     if (result == true) {
       _loadExpenses();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Expense added successfully'),
@@ -806,7 +714,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       leading: CircleAvatar(
-        backgroundColor: Colors.orange.withOpacity(0.1),
+        backgroundColor: const Color.fromRGBO(255, 152, 0, 0.1),
         child: Icon(
           _getCategoryIcon(category),
           color: Colors.orange,
@@ -834,7 +742,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: const Color.fromRGBO(255, 152, 0, 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -850,7 +758,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: const Color.fromRGBO(33, 150, 243, 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -1310,5 +1218,43 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       _selectedDateRange = null;
     });
     _applyFilters();
+  }
+
+  Future<void> _loadExpenses() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final expenses = await _excelService.loadExpensesFromExcel();
+      if (!mounted) return;
+      setState(() {
+        _expenses = List<Map<String, dynamic>>.from(expenses);
+        // Update available categories from loaded data
+        _availableCategories = _expenses
+            .map((e) => e['category']?.toString() ?? 'Other')
+            .toSet()
+            .toList()
+          ..sort();
+        if (_availableCategories.isEmpty) {
+          _availableCategories = List<String>.from(_expenseCategories);
+        }
+        _applyFilters();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load expenses: $e')),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExpenses();
   }
 }
