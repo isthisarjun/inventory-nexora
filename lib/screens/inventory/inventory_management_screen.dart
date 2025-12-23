@@ -27,12 +27,12 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
     super.initState();
     _focusNode = FocusNode();
     _loadInventoryData();
-    print('📦 InventoryManagementScreen initialized with ESC key support');
+    debugPrint('📦 InventoryManagementScreen initialized with ESC key support');
     
     // Request focus after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
-      print('🎯 Focus requested for InventoryManagementScreen');
+      debugPrint('🎯 Focus requested for InventoryManagementScreen');
     });
   }
 
@@ -815,33 +815,6 @@ class _InventoryManagementScreenState extends State<InventoryManagementScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            '$label:',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
 
   void _showPurchaseDialog({Map<String, dynamic>? material}) {
     showDialog(
