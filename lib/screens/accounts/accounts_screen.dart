@@ -267,15 +267,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
               children: [
                 Expanded(
                   child: _buildQuickActionTile(
-                    title: 'Add Customer',
-                    icon: Icons.person_add,
-                    color: Colors.blue,
-                    onTap: () => context.go('/add-customer?fromAccounts=true'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionTile(
                     title: 'Add Supplier',
                     icon: Icons.store_mall_directory,
                     color: Colors.orange,
