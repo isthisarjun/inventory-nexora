@@ -231,15 +231,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildQuickActionTile(
-                    title: 'Ledger',
-                    icon: Icons.account_balance,
-                    color: Colors.indigo,
-                    onTap: () => context.go('/ledger'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildQuickActionTile(
                     title: 'Reports',
                     icon: Icons.analytics,
                     color: Colors.brown,

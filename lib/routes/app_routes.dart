@@ -14,7 +14,7 @@ import 'package:tailor_v3/screens/purchase/purchase_items_screen.dart';
 import 'package:tailor_v3/screens/accounts/accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/supplier_accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/all_accounts_screen.dart';
-import 'package:tailor_v3/screens/accounts/ledger_screen.dart';
+
 import 'package:tailor_v3/screens/accounts/vat_report_screen.dart';
 import 'package:tailor_v3/screens/transactions/transactions_screen.dart';
 import 'package:tailor_v3/screens/expenses/expenses_screen.dart';
@@ -53,7 +53,7 @@ class AppRoutes {
   static const String expenses = '/expenses';
   static const String supplierAccounts = '/accounts/suppliers';
   static const String allAccounts = '/accounts/all';
-  static const String ledger = '/accounts/ledger';
+
   static const String vatReport = '/accounts/vat-report';
   static const String invoiceDetails = '/invoice-details';
   
@@ -194,11 +194,7 @@ class AppRouter {
           name: 'allAccounts',
           builder: (context, state) => const AllAccountsScreen(),
         ),
-        GoRoute(
-          path: AppRoutes.ledger,
-          name: 'ledger',
-          builder: (context, state) => const LedgerScreen(),
-        ),
+
         GoRoute(
           path: AppRoutes.vatReport,
           name: 'vatReport',
@@ -236,7 +232,7 @@ class AppRouter {
       
       // Error handling for undefined routes
       errorBuilder: (context, state) {
-        print('Error: ${state.error}');
+        debugPrint('Error: [31m${state.error}[0m');
         return const HomeScreen();
       },
     );
