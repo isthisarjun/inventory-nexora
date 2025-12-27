@@ -943,11 +943,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                   color: Colors.grey[600],
                                 ),
                                 const SizedBox(width: 8),
-                                Text(method),
+                                Text(method, style: const TextStyle(color: Colors.black)),
                               ],
                             ),
                           );
                         }).toList(),
+                        style: const TextStyle(color: Colors.black),
                         onChanged: (val) {
                           setDialogState(() {
                             tempPaymentMethod = val;
@@ -1591,7 +1592,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                 value: item,
                                 child: Text(
                                   name,
-                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, fontStyle: FontStyle.italic),
+                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );
@@ -1606,7 +1607,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                           },
                           isExpanded: true,
                           menuMaxHeight: 200,
-                          style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                          style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black),
                           ),
                           ),
                         ),
