@@ -157,16 +157,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     onTap: () => context.go('/ledger'),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildReportTile(
-                    title: 'VAT Report',
-                    subtitle: 'Tax reporting',
-                    icon: Icons.receipt_long,
-                    color: Colors.teal,
-                    onTap: () => context.go('/vat-report'),
-                  ),
-                ),
               ],
             ),
             
@@ -217,18 +207,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
             
             const SizedBox(height: 12),
             
-            // Second row of navigation (3 buttons)
+            // Second row of navigation (2 buttons)
             Row(
               children: [
-                Expanded(
-                  child: _buildQuickActionTile(
-                    title: 'VAT Report',
-                    icon: Icons.assessment,
-                    color: Colors.purple,
-                    onTap: () => context.go('/vat-report'),
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: _buildQuickActionTile(
                     title: 'Reports',

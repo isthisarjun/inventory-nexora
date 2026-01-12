@@ -15,7 +15,6 @@ import 'package:tailor_v3/screens/accounts/accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/supplier_accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/all_accounts_screen.dart';
 
-import 'package:tailor_v3/screens/accounts/vat_report_screen.dart';
 import 'package:tailor_v3/screens/transactions/transactions_screen.dart';
 import 'package:tailor_v3/screens/expenses/expenses_screen.dart';
 import 'package:tailor_v3/screens/orders/new_order_screen.dart';
@@ -54,7 +53,6 @@ class AppRoutes {
   static const String supplierAccounts = '/accounts/suppliers';
   static const String allAccounts = '/accounts/all';
 
-  static const String vatReport = '/accounts/vat-report';
   static const String invoiceDetails = '/invoice-details';
   
   // Error routes
@@ -193,12 +191,6 @@ class AppRouter {
           path: AppRoutes.allAccounts,
           name: 'allAccounts',
           builder: (context, state) => const AllAccountsScreen(),
-        ),
-
-        GoRoute(
-          path: AppRoutes.vatReport,
-          name: 'vatReport',
-          builder: (context, state) => const VatReportScreen(),
         ),
         GoRoute(
           path: '${AppRoutes.invoiceDetails}/:orderId',
