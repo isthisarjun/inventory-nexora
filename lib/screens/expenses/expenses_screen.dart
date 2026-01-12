@@ -86,9 +86,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final amountController = TextEditingController();
     final vendorController = TextEditingController();
     final referenceController = TextEditingController();
+    final vatRateController = TextEditingController(text: '10.0');
     String selectedCategory = _availableCategories.isNotEmpty ? _availableCategories.first : 'Other';
     String selectedPaymentMethod = _paymentMethods.first;
     DateTime selectedDate = DateTime.now();
+    bool includeVat = false;
+    double calculatedVatAmount = 0.0;
 
     final result = await showDialog<bool>(
       context: context,
@@ -184,6 +187,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               ),
                               style: const TextStyle(fontSize: 14),
                               keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                if (includeVat && value.isNotEmpty) {
+                                  setDialogState(() {
+                                    final amount = double.tryParse(value) ?? 0.0;
+                                    final vatRate = double.tryParse(vatRateController.text) ?? 10.0;
+                                    calculatedVatAmount = amount * (vatRate / 100);
+                                  });
+                                }
+                              },
                               validator: (value) {
                                 if (value?.isEmpty ?? true) return 'Required';
                                 if (double.tryParse(value!) == null) return 'Invalid';
@@ -344,6 +356,114 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+                    
+                    // Row 4: VAT Toggle and Rate
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 60,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.receipt_long, size: 20, color: Colors.blue),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'Include VAT',
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                                Switch(
+                                  value: includeVat,
+                                  onChanged: (value) {
+                                    setDialogState(() {
+                                      includeVat = value;
+                                      if (includeVat && amountController.text.isNotEmpty) {
+                                        final amount = double.tryParse(amountController.text) ?? 0.0;
+                                        final vatRate = double.tryParse(vatRateController.text) ?? 10.0;
+                                        calculatedVatAmount = amount * (vatRate / 100);
+                                      } else {
+                                        calculatedVatAmount = 0.0;
+                                      }
+                                    });
+                                  },
+                                  activeColor: Colors.blue[600],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 60,
+                            child: TextFormField(
+                              controller: vatRateController,
+                              enabled: includeVat,
+                              decoration: InputDecoration(
+                                labelText: 'VAT Rate (%)',
+                                prefixIcon: const Icon(Icons.percent, size: 20),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                labelStyle: const TextStyle(fontSize: 14),
+                                filled: !includeVat,
+                                fillColor: !includeVat ? Colors.grey[200] : null,
+                              ),
+                              style: const TextStyle(fontSize: 14),
+                              keyboardType: TextInputType.number,
+                              onChanged: (value) {
+                                if (includeVat && amountController.text.isNotEmpty) {
+                                  setDialogState(() {
+                                    final amount = double.tryParse(amountController.text) ?? 0.0;
+                                    final vatRate = double.tryParse(value) ?? 10.0;
+                                    calculatedVatAmount = amount * (vatRate / 100);
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            height: 60,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.blue[50],
+                              border: Border.all(color: Colors.blue[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'VAT Amount',
+                                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'BHD ${calculatedVatAmount.toStringAsFixed(3)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 20),
                     
                     // Action Buttons
@@ -353,16 +473,22 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           onPressed: () async {
                             if (formKey.currentState!.validate()) {
                               try {
+                                final amount = double.parse(amountController.text.trim());
+                                final vatRate = includeVat ? double.tryParse(vatRateController.text) : null;
+                                final vatAmount = includeVat ? calculatedVatAmount : null;
+                                
                                 await _excelService.saveExpenseToExcel(
                                   expenseDate: selectedDate,
                                   expenseCategory: selectedCategory,
                                   description: descriptionController.text.trim(),
-                                  amount: double.parse(amountController.text.trim()),
+                                  amount: amount,
                                   paymentMethod: selectedPaymentMethod,
                                   vendorName: vendorController.text.trim(),
                                   reference: referenceController.text.trim().isNotEmpty 
                                       ? referenceController.text.trim() 
                                       : null,
+                                  vatRate: vatRate,
+                                  vatAmount: vatAmount,
                                 );
                                 Navigator.of(context).pop(true);
                               } catch (e) {
