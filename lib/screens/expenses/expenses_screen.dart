@@ -1016,6 +1016,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         elevation: 0,
         actions: [
           IconButton(
+            icon: const Icon(Icons.assessment),
+            onPressed: _generateVatFilingWorkbook,
+            tooltip: 'Generate VAT Filing Workbook',
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadExpenses,
             tooltip: 'Refresh',
@@ -1344,6 +1349,122 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       _selectedDateRange = null;
     });
     _applyFilters();
+  }
+
+  Future<void> _generateVatFilingWorkbook() async {
+    // Show date range picker dialog
+    final DateTimeRange? dateRange = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: DateTimeRange(
+        start: DateTime(DateTime.now().year, DateTime.now().month, 1),
+        end: DateTime.now(),
+      ),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (dateRange == null) return;
+
+    // Show loading dialog
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('Generating VAT Filing Workbook...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final filePath = await _excelService.generateVatFilingWorkbook(
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+      );
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+
+      if (filePath != null) {
+        // Show success dialog with file location
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 8),
+                Text('Success'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('VAT Filing Workbook generated successfully!'),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SelectableText(
+                    filePath,
+                    style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'The workbook contains three sheets:\n'
+                  '• inventory_purchase_ledger (Input VAT)\n'
+                  '• inventory_sales_ledger (Output VAT)\n'
+                  '• inventory_vat_summary (Net VAT)',
+                  style: TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to generate VAT filing workbook'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _loadExpenses() async {
