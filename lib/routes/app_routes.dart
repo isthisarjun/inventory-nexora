@@ -5,6 +5,7 @@ import 'package:tailor_v3/screens/splash_screen.dart';
 import 'package:tailor_v3/screens/finance/add_expense_screen.dart';
 import 'package:tailor_v3/screens/finance/invoices_screen.dart';
 import 'package:tailor_v3/screens/finance/invoice_details_screen.dart';
+import 'package:tailor_v3/screens/finance/vat_filing_screen.dart';
 import 'package:tailor_v3/screens/inventory/inventory_management_screen.dart';
 import 'package:tailor_v3/screens/inventory/inventory_items_screen.dart';
 import 'package:tailor_v3/screens/inventory/stock_purchase_history_screen.dart';
@@ -52,6 +53,7 @@ class AppRoutes {
   static const String expenses = '/expenses';
   static const String supplierAccounts = '/accounts/suppliers';
   static const String allAccounts = '/accounts/all';
+  static const String vatFiling = '/vat-filing';
 
   static const String invoiceDetails = '/invoice-details';
   
@@ -218,6 +220,14 @@ class AppRouter {
           path: AppRoutes.returnedItems,
           name: 'returnedItems',
           builder: (context, state) => const ReturnedItemsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.vatFiling,
+          name: 'vatFiling',
+          builder: (context, state) {
+            final filePath = state.extra as String?;
+            return VatFilingScreen(initialFilePath: filePath);
+          },
         ),
          // Add more routes as you implement the screens
       ],

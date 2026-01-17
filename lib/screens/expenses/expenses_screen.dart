@@ -1401,7 +1401,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       Navigator.of(context).pop(); // Close loading dialog
 
       if (filePath != null) {
-        // Show success dialog with file location
+        // Show success dialog with file location and option to view/manipulate
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -1443,6 +1443,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('Close'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // Close success dialog
+                  // Navigate to VAT filing screen
+                  context.push('/vat-filing', extra: filePath);
+                },
+                child: const Text('View & Manipulate Data'),
               ),
             ],
           ),
