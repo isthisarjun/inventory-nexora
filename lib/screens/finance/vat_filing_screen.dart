@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:tailor_v3/models/vat_filing_data.dart';
 import 'package:tailor_v3/services/excel_service.dart';
@@ -139,8 +140,8 @@ class _VatFilingScreenState extends State<VatFilingScreen>
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Back',
+          onPressed: () => context.go('/accounts'),
+          tooltip: 'Back to Accounts',
         ),
         title: const Text('VAT Filing - Data Manipulation'),
         backgroundColor: Theme.of(context).primaryColor,

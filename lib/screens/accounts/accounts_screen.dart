@@ -83,6 +83,13 @@ class _AccountsScreenState extends State<AccountsScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.assessment),
+            onPressed: () => context.go('/vat-filing'),
+            tooltip: 'VAT Filing',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -286,6 +293,32 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     icon: Icons.account_balance_wallet,
                     color: Colors.red,
                     onTap: () => context.go('/expenses'),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Tax & Compliance Section
+            const Text(
+              'Tax & Compliance',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: _buildQuickActionTile(
+                    title: 'VAT Filing',
+                    icon: Icons.assessment,
+                    color: Colors.indigo,
+                    onTap: () => context.go('/vat-filing'),
                   ),
                 ),
               ],
