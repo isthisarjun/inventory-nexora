@@ -54,6 +54,7 @@ class AppRoutes {
   static const String supplierAccounts = '/accounts/suppliers';
   static const String allAccounts = '/accounts/all';
   static const String vatFiling = '/vat-filing';
+  static const String ledger = '/ledger';
 
   static const String invoiceDetails = '/invoice-details';
   
@@ -178,6 +179,11 @@ class AppRouter {
           path: AppRoutes.transactions,
           name: 'transactions',
           builder: (context, state) => const TransactionsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.ledger,
+          name: 'ledger',
+          builder: (context, state) => const VatFilingScreen(),
         ),
         GoRoute(
           path: AppRoutes.expenses,
