@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tailor_v3/routes/app_routes.dart';
@@ -49,6 +50,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   // Selected values
   String? _selectedVendorId;
   String? _selectedItemId;
+  TextEditingController? _itemFieldController;
+  // Keyboard navigation state for item suggestions
+  int _itemSuggestionIndex = -1;
+  final FocusNode _itemOptionsFocusNode = FocusNode();
   DateTime _selectedDate = DateTime.now();
   bool _isPaid = true;
   bool _isLoading = false;
@@ -110,6 +115,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     _unitCostController.dispose();
     _notesController.dispose();
     _vendorSearchController.dispose();
+    if (_itemFieldController != null) {
+      _itemFieldController!.removeListener(_onItemTextChanged);
+    }
+    _itemOptionsFocusNode.dispose();
     
     // Dispose focus nodes
     for (final focusNode in _focusNodes) {
@@ -117,6 +126,22 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     }
     
     super.dispose();
+  }
+
+  void _onItemTextChanged() {
+    if (_selectedItemId == null) return;
+    final selected = _inventoryItems.firstWhere(
+      (i) => i['id'] == _selectedItemId,
+      orElse: () => {},
+    );
+    if (selected.isEmpty) {
+      setState(() => _selectedItemId = null);
+      return;
+    }
+    final expected = '${selected['id']} - ${selected['name']}';
+    if (_itemFieldController != null && _itemFieldController!.text != expected) {
+      setState(() => _selectedItemId = null);
+    }
   }
 
   Future<void> _loadData() async {
@@ -1020,7 +1045,6 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             if (event is KeyDownEvent) {
               if (event.logicalKey == LogicalKeyboardKey.enter) {
                 if (_selectedItemId != null && _selectedItemId != 'add_new_item') {
-                  // Move to quantity field when Enter is pressed and item is selected
                   Future.delayed(const Duration(milliseconds: 100), () {
                     FocusScope.of(context).requestFocus(_quantityFocusNode);
                   });
@@ -1030,56 +1054,146 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
               }
             }
           },
-          child: DropdownButtonFormField<String>(
-            key: _itemDropdownKey,
-            initialValue: _selectedItemId,
-            decoration: InputDecoration(
-              labelText: 'Item Name *',
-              prefixIcon: const Icon(Icons.inventory, size: 20),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              labelStyle: const TextStyle(fontSize: 14),
-            ),
-            style: const TextStyle(fontSize: 14, color: Colors.black),
-            autofocus: false,
-            onTap: () {
-              // Ensure dropdown opens when tapped or focused
+          child: FormField<String>(
+            validator: (value) {
+              if (_selectedItemId == null) return 'Required';
+              return null;
             },
-          items: [
-            ..._inventoryItems.map((item) {
-              return DropdownMenuItem<String>(
-                value: item['id'],
-                child: Text(item['name'], style: const TextStyle(fontSize: 14, color: Colors.black)),
+            builder: (field) {
+              return Autocomplete<Map<String, dynamic>>(
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  final query = textEditingValue.text.toLowerCase().trim();
+                  final matches = _inventoryItems.where((item) {
+                    final id = (item['id'] ?? '').toString().toLowerCase();
+                    final name = (item['name'] ?? '').toString().toLowerCase();
+                    if (query.isEmpty) return true;
+                    return id.contains(query) || name.contains(query);
+                  });
+                  return matches.take(15);
+                },
+                displayStringForOption: (option) => '${option['id']} - ${option['name']}',
+                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                  if (_itemFieldController == null) {
+                    _itemFieldController = controller;
+                    _itemFieldController!.addListener(_onItemTextChanged);
+                  } else if (_itemFieldController != controller) {
+                    _itemFieldController!.removeListener(_onItemTextChanged);
+                    _itemFieldController = controller;
+                    _itemFieldController!.addListener(_onItemTextChanged);
+                  }
+
+                  return TextFormField(
+                    controller: controller,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      labelText: 'Item Name *',
+                      prefixIcon: const Icon(Icons.inventory, size: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      labelStyle: const TextStyle(fontSize: 14),
+                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.black),
+                    autofocus: false,
+                    onFieldSubmitted: (_) => onFieldSubmitted(),
+                    onTap: () {
+                      // Show options when tapped by focusing
+                      // Autocomplete will call optionsBuilder on focus changes
+                    },
+                  );
+                },
+                onSelected: (selection) {
+                  if (selection['id'] == 'add_new_item') {
+                    _openAddNewItemDialog();
+                    return;
+                  }
+                  setState(() {
+                    _selectedItemId = selection['id'];
+                  });
+                  field.didChange(selection['id']);
+                  Future.delayed(const Duration(milliseconds: 100), () {
+                    FocusScope.of(context).requestFocus(_quantityFocusNode);
+                  });
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  final optionsList = options.toList(growable: false);
+                  // Reset index when options change
+                  if (optionsList.isEmpty) {
+                    _itemSuggestionIndex = -1;
+                  } else {
+                    _itemSuggestionIndex = max(0, min(_itemSuggestionIndex, optionsList.length - 1));
+                  }
+
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (!_itemOptionsFocusNode.hasFocus) {
+                      _itemOptionsFocusNode.requestFocus();
+                    }
+                  });
+
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 300, maxWidth: double.infinity),
+                        child: RawKeyboardListener(
+                          focusNode: _itemOptionsFocusNode,
+                          onKey: (RawKeyEvent rawEvent) {
+                            if (rawEvent is RawKeyDownEvent) {
+                              final key = rawEvent.logicalKey;
+                              if (key == LogicalKeyboardKey.arrowDown) {
+                                setState(() {
+                                  if (optionsList.isNotEmpty) {
+                                    _itemSuggestionIndex = (_itemSuggestionIndex + 1) % optionsList.length;
+                                  }
+                                });
+                              } else if (key == LogicalKeyboardKey.arrowUp) {
+                                setState(() {
+                                  if (optionsList.isNotEmpty) {
+                                    _itemSuggestionIndex = (_itemSuggestionIndex - 1 + optionsList.length) % optionsList.length;
+                                  }
+                                });
+                              } else if (key == LogicalKeyboardKey.enter) {
+                                if (_itemSuggestionIndex >= 0 && _itemSuggestionIndex < optionsList.length) {
+                                  onSelected(optionsList[_itemSuggestionIndex]);
+                                }
+                              }
+                            }
+                          },
+                          child: ListView.builder(
+                            padding: EdgeInsets.zero,
+                            shrinkWrap: true,
+                            itemCount: optionsList.length + 1,
+                            itemBuilder: (context, index) {
+                              if (index < optionsList.length) {
+                                final option = optionsList[index];
+                                final selected = index == _itemSuggestionIndex;
+                                return Container(
+                                  color: selected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+                                  child: ListTile(
+                                    title: Text(option['name']?.toString() ?? ''),
+                                    subtitle: Text(option['id']?.toString() ?? ''),
+                                    onTap: () => onSelected(option),
+                                  ),
+                                );
+                              }
+                              // Add New Item tile at the end
+                              return ListTile(
+                                leading: const Icon(Icons.add),
+                                title: const Text('➕ Add New Item'),
+                                onTap: () => onSelected({'id': 'add_new_item', 'name': 'Add New Item'}),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               );
-            }),
-            const DropdownMenuItem<String>(
-              value: 'add_new_item',
-              child: Text('➕ Add New Item', style: TextStyle(fontSize: 14, color: Colors.black)),
-            ),
-          ],
-          onChanged: (value) {
-            if (value == 'add_new_item') {
-              _openAddNewItemDialog();
-            } else {
-              setState(() {
-                _selectedItemId = value;
-              });
-              // Auto-navigate to quantity field after item selection
-              Future.delayed(const Duration(milliseconds: 100), () {
-                FocusScope.of(context).requestFocus(_quantityFocusNode);
-              });
-            }
-          },
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Required';
-          }
-          return null;
-        },
-        isExpanded: true,
-        ),
+            },
+          ),
         ),
       ),
     );
