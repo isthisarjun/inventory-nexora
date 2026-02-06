@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/account.dart';
+import '../../services/excel_service.dart';
 
 class AccountsScreen extends StatefulWidget {
   const AccountsScreen({super.key});
@@ -11,11 +12,16 @@ class AccountsScreen extends StatefulWidget {
 
 class _AccountsScreenState extends State<AccountsScreen> {
   List<Account> _accounts = [];
+  final ExcelService _excelService = ExcelService();
+  double _creditReceivables = 0.0;
+  double _creditPayables = 0.0;
+  bool _isLoadingCreditTotals = false;
 
   @override
   void initState() {
     super.initState();
     _loadMockData();
+    _loadCreditPaymentTotals();
   }
 
   void _loadMockData() {
@@ -64,13 +70,60 @@ class _AccountsScreenState extends State<AccountsScreen> {
     ];
   }
 
+  Future<void> _loadCreditPaymentTotals() async {
+    setState(() {
+      _isLoadingCreditTotals = true;
+    });
+
+    try {
+      final transactions = await _excelService.loadTransactionsFromExcel();
+
+      double receivables = 0.0;
+      double payables = 0.0;
+
+      for (final transaction in transactions) {
+        final type = transaction['transactionType']?.toString().toLowerCase() ?? '';
+        final category = transaction['category']?.toString().toLowerCase() ?? '';
+        final flowType = transaction['flowType']?.toString().toLowerCase() ?? '';
+        final amount = (transaction['amount'] as double? ?? 0.0).abs();
+
+        final isCreditPayment = type.contains('payment') || category.contains('payment');
+        if (!isCreditPayment) continue;
+
+        final isIncome = flowType == 'income' || (transaction['amount'] as double? ?? 0.0) > 0;
+        if (isIncome) {
+          receivables += amount;
+        } else {
+          payables += amount;
+        }
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _creditReceivables = receivables;
+        _creditPayables = payables;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _creditReceivables = 0.0;
+        _creditPayables = 0.0;
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingCreditTotals = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = _accounts.where((account) => account.isCustomer).toList();
     final suppliers = _accounts.where((account) => account.isSupplier).toList();
     
-    final totalDebtors = customers.fold(0.0, (sum, acc) => sum + acc.debitBalance);
-    final totalCreditors = suppliers.fold(0.0, (sum, acc) => sum + acc.creditBalance);
+    final totalDebtors = _creditReceivables;
+    final totalCreditors = _creditPayables;
 
     return Scaffold(
       appBar: AppBar(
