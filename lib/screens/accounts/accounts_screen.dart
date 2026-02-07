@@ -16,6 +16,8 @@ class _AccountsScreenState extends State<AccountsScreen> {
   double _creditReceivables = 0.0;
   double _creditPayables = 0.0;
   bool _isLoadingCreditTotals = false;
+  DateTimeRange? _purchaseLedgerRange;
+  DateTimeRange? _salesLedgerRange;
 
   @override
   void initState() {
@@ -117,6 +119,35 @@ class _AccountsScreenState extends State<AccountsScreen> {
     }
   }
 
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+
+  String _formatRange(DateTimeRange? range) {
+    if (range == null) return 'All time';
+    return '${_formatDate(range.start)} - ${_formatDate(range.end)}';
+  }
+
+  Future<void> _selectLedgerRange({required bool isPurchase}) async {
+    final now = DateTime.now();
+    final initial = DateTimeRange(
+      start: now.subtract(const Duration(days: 30)),
+      end: now,
+    );
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: now.add(const Duration(days: 365)),
+      initialDateRange: isPurchase ? (_purchaseLedgerRange ?? initial) : (_salesLedgerRange ?? initial),
+    );
+    if (picked == null) return;
+    setState(() {
+      if (isPurchase) {
+        _purchaseLedgerRange = picked;
+      } else {
+        _salesLedgerRange = picked;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final customers = _accounts.where((account) => account.isCustomer).toList();
@@ -136,13 +167,7 @@ class _AccountsScreenState extends State<AccountsScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.assessment),
-            onPressed: () => context.go('/vat-filing'),
-            tooltip: 'VAT Filing',
-          ),
-        ],
+        actions: const [],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -206,18 +231,24 @@ class _AccountsScreenState extends State<AccountsScreen> {
             ),
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  child: _buildReportTile(
-                    title: 'Ledger',
-                    subtitle: 'View account ledger',
-                    icon: Icons.book,
-                    color: Colors.purple,
-                    onTap: () => context.go('/ledger'),
-                  ),
-                ),
-              ],
+            _buildLedgerSection(
+              title: 'Purchase Ledger',
+              subtitle: 'Filter purchases by period',
+              icon: Icons.shopping_cart,
+              color: Colors.deepPurple,
+              dateRangeText: _formatRange(_purchaseLedgerRange),
+              onSelectRange: () => _selectLedgerRange(isPurchase: true),
+              onOpenLedger: () => context.go('/ledger/purchase'),
+            ),
+            const SizedBox(height: 12),
+            _buildLedgerSection(
+              title: 'Sales Ledger',
+              subtitle: 'Filter sales by period',
+              icon: Icons.sell,
+              color: Colors.indigo,
+              dateRangeText: _formatRange(_salesLedgerRange),
+              onSelectRange: () => _selectLedgerRange(isPurchase: false),
+              onOpenLedger: () => context.go('/ledger/sales'),
             ),
             
             const SizedBox(height: 24),
@@ -352,30 +383,6 @@ class _AccountsScreenState extends State<AccountsScreen> {
             ),
             
             const SizedBox(height: 24),
-            
-            // Tax & Compliance Section
-            const Text(
-              'Tax & Compliance',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            Row(
-              children: [
-                Expanded(
-                  child: _buildQuickActionTile(
-                    title: 'VAT Filing',
-                    icon: Icons.assessment,
-                    color: Colors.indigo,
-                    onTap: () => context.go('/vat-filing'),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       ),
@@ -417,7 +424,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'BHD ${totalDebtors.toStringAsFixed(2)}',
+                    _isLoadingCreditTotals
+                        ? 'Loading...'
+                        : 'BHD ${totalDebtors.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -462,7 +471,9 @@ class _AccountsScreenState extends State<AccountsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'BHD ${totalCreditors.toStringAsFixed(2)}',
+                    _isLoadingCreditTotals
+                        ? 'Loading...'
+                        : 'BHD ${totalCreditors.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -516,50 +527,72 @@ class _AccountsScreenState extends State<AccountsScreen> {
     );
   }
 
-  Widget _buildReportTile({
+  Widget _buildLedgerSection({
     required String title,
     required String subtitle,
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    required String dateRangeText,
+    required VoidCallback onSelectRange,
+    required VoidCallback onOpenLedger,
   }) {
     return Card(
       elevation: 2,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, color: color, size: 24),
                 ),
-                child: Icon(icon, color: color, size: 32),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Period: $dateRangeText',
+              style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                OutlinedButton.icon(
+                  onPressed: onSelectRange,
+                  icon: const Icon(Icons.date_range),
+                  label: const Text('Choose Period'),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: onOpenLedger,
+                  icon: const Icon(Icons.book),
+                  label: const Text('Open Ledger'),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -6,6 +6,8 @@ import 'package:tailor_v3/screens/finance/add_expense_screen.dart';
 import 'package:tailor_v3/screens/finance/invoices_screen.dart';
 import 'package:tailor_v3/screens/finance/invoice_details_screen.dart';
 import 'package:tailor_v3/screens/finance/vat_filing_screen.dart';
+import 'package:tailor_v3/screens/finance/purchase_ledger_screen.dart';
+import 'package:tailor_v3/screens/finance/sales_ledger_screen.dart';
 import 'package:tailor_v3/screens/inventory/inventory_management_screen.dart';
 import 'package:tailor_v3/screens/inventory/inventory_items_screen.dart';
 import 'package:tailor_v3/screens/inventory/stock_purchase_history_screen.dart';
@@ -55,6 +57,8 @@ class AppRoutes {
   static const String allAccounts = '/accounts/all';
   static const String vatFiling = '/vat-filing';
   static const String ledger = '/ledger';
+  static const String purchaseLedger = '/ledger/purchase';
+  static const String salesLedger = '/ledger/sales';
 
   static const String invoiceDetails = '/invoice-details';
   
@@ -184,6 +188,16 @@ class AppRouter {
           path: AppRoutes.ledger,
           name: 'ledger',
           builder: (context, state) => const VatFilingScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.purchaseLedger,
+          name: 'purchaseLedger',
+          builder: (context, state) => const PurchaseLedgerScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.salesLedger,
+          name: 'salesLedger',
+          builder: (context, state) => const SalesLedgerScreen(),
         ),
         GoRoute(
           path: AppRoutes.expenses,
