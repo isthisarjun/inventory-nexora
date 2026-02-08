@@ -53,7 +53,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   TextEditingController? _itemFieldController;
   // Keyboard navigation state for item suggestions
   int _itemSuggestionIndex = -1;
-  final FocusNode _itemOptionsFocusNode = FocusNode();
+  final ValueNotifier<bool> _isAddEnabledNotifier = ValueNotifier<bool>(false);
   DateTime _selectedDate = DateTime.now();
   bool _isPaid = true;
   bool _isLoading = false;
@@ -102,10 +102,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     
     // Add listeners to update button state when fields change
     _quantityController.addListener(() {
-      setState(() {});
+      _updateAddButtonState();
     });
     _unitCostController.addListener(() {
-      setState(() {});
+      _updateAddButtonState();
     });
   }
 
@@ -118,7 +118,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     if (_itemFieldController != null) {
       _itemFieldController!.removeListener(_onItemTextChanged);
     }
-    _itemOptionsFocusNode.dispose();
+    _isAddEnabledNotifier.dispose();
     
     // Dispose focus nodes
     for (final focusNode in _focusNodes) {
@@ -135,12 +135,14 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       orElse: () => {},
     );
     if (selected.isEmpty) {
-      setState(() => _selectedItemId = null);
+      _selectedItemId = null;
+      _updateAddButtonState();
       return;
     }
     final expected = '${selected['id']} - ${selected['name']}';
     if (_itemFieldController != null && _itemFieldController!.text != expected) {
-      setState(() => _selectedItemId = null);
+      _selectedItemId = null;
+      _updateAddButtonState();
     }
   }
 
@@ -190,6 +192,13 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
            double.tryParse(_quantityController.text)! > 0 &&
            double.tryParse(_unitCostController.text) != null &&
            double.tryParse(_unitCostController.text)! > 0;
+  }
+
+  void _updateAddButtonState() {
+    final nextValue = _areAllFieldsFilled();
+    if (_isAddEnabledNotifier.value != nextValue) {
+      _isAddEnabledNotifier.value = nextValue;
+    }
   }
 
   // Arrow key navigation for form fields
@@ -352,6 +361,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _quantityController.clear();
         _unitCostController.clear();
       });
+      _updateAddButtonState();
       
       _showSuccessSnackBar('Item added to purchase list!');
       
@@ -471,6 +481,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       _showVendorSuggestions = false;
       _selectedVendorIndex = -1;
     });
+    _updateAddButtonState();
     
     // Generate new purchase ID for next purchase
     _generateSequentialPurchaseId();
@@ -525,6 +536,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
               focusNode: FocusNode(),
               onKeyEvent: (KeyEvent event) {
                 if (event is KeyDownEvent) {
+                  if (_itemFocusNode.hasFocus) {
+                    return;
+                  }
                   if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
                       event.logicalKey == LogicalKeyboardKey.arrowRight) {
                     _handleArrowKeyNavigation(event.logicalKey);
@@ -638,30 +652,36 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                                   child: KeyboardListener(
                                     focusNode: FocusNode(),
                                     onKeyEvent: (KeyEvent event) {
-                                      if (event is KeyDownEvent && 
-                                          event.logicalKey == LogicalKeyboardKey.enter &&
-                                          _areAllFieldsFilled() && !_isAddingItem) {
-                                        _addItemToPurchase();
+                                        if (event is KeyDownEvent && 
+                                            event.logicalKey == LogicalKeyboardKey.enter) {
+                                          if (_isAddEnabledNotifier.value && !_isAddingItem) {
+                                            _addItemToPurchase();
+                                          }
                                       }
                                     },
-                                    child: ElevatedButton.icon(
-                                      onPressed: _areAllFieldsFilled() && !_isAddingItem ? _addItemToPurchase : null,
-                                      icon: _isAddingItem 
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                            )
-                                          : const Icon(Icons.add, size: 18),
-                                      label: Text(_isAddingItem ? 'Adding...' : 'Add Item'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue[600],
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
+                                      child: ValueListenableBuilder<bool>(
+                                        valueListenable: _isAddEnabledNotifier,
+                                        builder: (context, isEnabled, _) {
+                                          return ElevatedButton.icon(
+                                            onPressed: isEnabled && !_isAddingItem ? _addItemToPurchase : null,
+                                            icon: _isAddingItem 
+                                                ? const SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                                  )
+                                                : const Icon(Icons.add, size: 18),
+                                            label: Text(_isAddingItem ? 'Adding...' : 'Add Item'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.blue[600],
+                                              foregroundColor: Colors.white,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    ),
                                   ),
                                 ),
                               ),
@@ -921,6 +941,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                         _showVendorSuggestions = true;
                         _selectedVendorIndex = -1;
                       });
+                          _updateAddButtonState();
                     }
                   },
                   validator: (value) {
@@ -982,6 +1003,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                           _showVendorSuggestions = false;
                           _selectedVendorIndex = -1;
                         });
+                        _updateAddButtonState();
                         // Auto-navigate to item field after vendor selection
                         Future.delayed(const Duration(milliseconds: 100), () {
                           FocusScope.of(context).requestFocus(_itemFocusNode);
@@ -1049,8 +1071,6 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     FocusScope.of(context).requestFocus(_quantityFocusNode);
                   });
                 }
-              } else {
-                _handleArrowKeyNavigation(event.logicalKey);
               }
             }
           },
@@ -1112,6 +1132,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     _selectedItemId = selection['id'];
                   });
                   field.didChange(selection['id']);
+                  _updateAddButtonState();
                   Future.delayed(const Duration(milliseconds: 100), () {
                     FocusScope.of(context).requestFocus(_quantityFocusNode);
                   });
@@ -1125,67 +1146,36 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     _itemSuggestionIndex = max(0, min(_itemSuggestionIndex, optionsList.length - 1));
                   }
 
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (!_itemOptionsFocusNode.hasFocus) {
-                      _itemOptionsFocusNode.requestFocus();
-                    }
-                  });
-
                   return Align(
                     alignment: Alignment.topLeft,
                     child: Material(
                       elevation: 4.0,
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxHeight: 300, maxWidth: double.infinity),
-                        child: RawKeyboardListener(
-                          focusNode: _itemOptionsFocusNode,
-                          onKey: (RawKeyEvent rawEvent) {
-                            if (rawEvent is RawKeyDownEvent) {
-                              final key = rawEvent.logicalKey;
-                              if (key == LogicalKeyboardKey.arrowDown) {
-                                setState(() {
-                                  if (optionsList.isNotEmpty) {
-                                    _itemSuggestionIndex = (_itemSuggestionIndex + 1) % optionsList.length;
-                                  }
-                                });
-                              } else if (key == LogicalKeyboardKey.arrowUp) {
-                                setState(() {
-                                  if (optionsList.isNotEmpty) {
-                                    _itemSuggestionIndex = (_itemSuggestionIndex - 1 + optionsList.length) % optionsList.length;
-                                  }
-                                });
-                              } else if (key == LogicalKeyboardKey.enter) {
-                                if (_itemSuggestionIndex >= 0 && _itemSuggestionIndex < optionsList.length) {
-                                  onSelected(optionsList[_itemSuggestionIndex]);
-                                }
-                              }
-                            }
-                          },
-                          child: ListView.builder(
-                            padding: EdgeInsets.zero,
-                            shrinkWrap: true,
-                            itemCount: optionsList.length + 1,
-                            itemBuilder: (context, index) {
-                              if (index < optionsList.length) {
-                                final option = optionsList[index];
-                                final selected = index == _itemSuggestionIndex;
-                                return Container(
-                                  color: selected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-                                  child: ListTile(
-                                    title: Text(option['name']?.toString() ?? ''),
-                                    subtitle: Text(option['id']?.toString() ?? ''),
-                                    onTap: () => onSelected(option),
-                                  ),
-                                );
-                              }
-                              // Add New Item tile at the end
-                              return ListTile(
-                                leading: const Icon(Icons.add),
-                                title: const Text('➕ Add New Item'),
-                                onTap: () => onSelected({'id': 'add_new_item', 'name': 'Add New Item'}),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: optionsList.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index < optionsList.length) {
+                              final option = optionsList[index];
+                              final selected = index == _itemSuggestionIndex;
+                              return Container(
+                                color: selected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+                                child: ListTile(
+                                  title: Text(option['name']?.toString() ?? ''),
+                                  subtitle: Text(option['id']?.toString() ?? ''),
+                                  onTap: () => onSelected(option),
+                                ),
                               );
-                            },
-                          ),
+                            }
+                            // Add New Item tile at the end
+                            return ListTile(
+                              leading: const Icon(Icons.add),
+                              title: const Text('➕ Add New Item'),
+                              onTap: () => onSelected({'id': 'add_new_item', 'name': 'Add New Item'}),
+                            );
+                          },
                         ),
                       ),
                     ),
