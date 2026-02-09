@@ -71,6 +71,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   
   // Order items list
   final List<OrderItem> _orderItems = [OrderItem()];
+
+  // Walk-in customer state
+  bool _isWalkInCustomer = false;
+  static const String _walkInName = 'Walk-in Customer';
+  static const String _walkInPhone = '00000000';
+  static const String _walkInAddress = 'N/A';
+  
+  // Focus node for global keyboard shortcuts
+  final _globalFocusNode = FocusNode();
   
   @override
   void initState() {
@@ -84,6 +93,11 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     
     // Load inventory items
     _loadInventoryItems();
+    
+    // Request focus on global focus node to capture keyboard shortcuts
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _globalFocusNode.requestFocus();
+    });
   }
   
   Future<void> _loadInventoryItems() async {
@@ -140,6 +154,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     _customerPhoneFocus.dispose();
     _customerAddressFocus.dispose();
     _createOrderButtonFocus.dispose();
+    _globalFocusNode.dispose();
     
     // Dispose all order items
     for (var orderItem in _orderItems) {
@@ -205,6 +220,29 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         _orderItems[index].dispose();
         _orderItems.removeAt(index);
         _updateCalculations();
+      });
+    }
+  }
+
+  void _setWalkInCustomer(bool isWalkIn) {
+    setState(() {
+      _isWalkInCustomer = isWalkIn;
+      if (isWalkIn) {
+        _customerNameController.text = _walkInName;
+        _customerPhoneController.text = _walkInPhone;
+        _customerAddressController.text = _walkInAddress;
+      } else {
+        _customerNameController.clear();
+        _customerPhoneController.clear();
+        _customerAddressController.clear();
+      }
+    });
+
+    if (isWalkIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_orderItems.isNotEmpty) {
+          _orderItems[0].itemDropdownFocus.requestFocus();
+        }
       });
     }
   }
@@ -1250,6 +1288,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
   
   void _clearForm() {
+    _isWalkInCustomer = false;
     _customerNameController.clear();
     _customerPhoneController.clear();
     _customerAddressController.clear();
@@ -1292,8 +1331,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           // Removed Reset Inventory File and Add Sample Data buttons for cleaner UI
         ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: KeyboardListener(
+        focusNode: _globalFocusNode,
+        onKeyEvent: (event) {
+          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyW) {
+            _setWalkInCustomer(true);
+          }
+        },
+        child: SafeArea(
+          child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0), // Clean margins on sides
           child: Card(
             elevation: 4,
@@ -1369,6 +1415,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               ),
             ),
           ),
+          ),
         ),
       ),
     );
@@ -1386,99 +1433,120 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
   
   Widget _buildCustomerDetailsSection() {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Customer Name field
-          Expanded(
-            flex: 2,
-            child: RawKeyboardListener(
-              focusNode: FocusNode(),
-              onKey: (event) => _handleKeyNavigation(event, _customerNameFocus),
-              child: TextFormField(
-                controller: _customerNameController,
-                focusNode: _customerNameFocus,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name *',
-                  hintText: 'Enter customer name',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person, size: 20),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  filled: true,
-                  fillColor: Color(0xFFEEEEEE),
-                ),
-                style: const TextStyle(fontStyle: FontStyle.italic),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Customer name is required';
-                  }
-                  return null;
-                },
-                onFieldSubmitted: (_) => _focusNextField(_customerNameFocus),
-              ),
-            ),
+    return Column(
+      children: [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text(
+            'Walk-in Customer',
+            style: TextStyle(fontWeight: FontWeight.w600),
           ),
-          const SizedBox(width: 12),
-          // Phone Number field
-          Expanded(
-            flex: 2,
-            child: RawKeyboardListener(
-              focusNode: FocusNode(),
-              onKey: (event) => _handleKeyNavigation(event, _customerPhoneFocus),
-              child: TextFormField(
-                controller: _customerPhoneController,
-                focusNode: _customerPhoneFocus,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number *',
-                  hintText: 'Enter phone number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone, size: 20),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  filled: true,
-                  fillColor: Color(0xFFEEEEEE),
+          subtitle: const Text('Use default customer details and skip entry'),
+          value: _isWalkInCustomer,
+          onChanged: _setWalkInCustomer,
+          activeColor: Colors.green,
+        ),
+        const SizedBox(height: 12),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Customer Name field
+              Expanded(
+                flex: 2,
+                child: RawKeyboardListener(
+                  focusNode: FocusNode(),
+                  onKey: (event) => _handleKeyNavigation(event, _customerNameFocus),
+                  child: TextFormField(
+                    controller: _customerNameController,
+                    focusNode: _customerNameFocus,
+                    enabled: !_isWalkInCustomer,
+                    decoration: const InputDecoration(
+                      labelText: 'Customer Name *',
+                      hintText: 'Enter customer name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person, size: 20),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      filled: true,
+                      fillColor: Color(0xFFEEEEEE),
+                    ),
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    validator: (value) {
+                      if (_isWalkInCustomer) return null;
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Customer name is required';
+                      }
+                      return null;
+                    },
+                    onFieldSubmitted: (_) => _focusNextField(_customerNameFocus),
+                  ),
                 ),
-                style: const TextStyle(fontStyle: FontStyle.italic),
-                keyboardType: TextInputType.phone,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s()]')),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Phone number is required';
-                  }
-                  return null;
-                },
-                onFieldSubmitted: (_) => _focusNextField(_customerPhoneFocus),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Address field
-          Expanded(
-            flex: 2,
-            child: RawKeyboardListener(
-              focusNode: FocusNode(),
-              onKey: (event) => _handleKeyNavigation(event, _customerAddressFocus),
-              child: TextFormField(
-                controller: _customerAddressController,
-                focusNode: _customerAddressFocus,
-                decoration: const InputDecoration(
-                  labelText: 'Address (Optional)',
-                  hintText: 'Enter customer address',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on, size: 20),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                  filled: true,
-                  fillColor: Color(0xFFEEEEEE),
+              const SizedBox(width: 12),
+              // Phone Number field
+              Expanded(
+                flex: 2,
+                child: RawKeyboardListener(
+                  focusNode: FocusNode(),
+                  onKey: (event) => _handleKeyNavigation(event, _customerPhoneFocus),
+                  child: TextFormField(
+                    controller: _customerPhoneController,
+                    focusNode: _customerPhoneFocus,
+                    enabled: !_isWalkInCustomer,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number *',
+                      hintText: 'Enter phone number',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.phone, size: 20),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      filled: true,
+                      fillColor: Color(0xFFEEEEEE),
+                    ),
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s()]')),
+                    ],
+                    validator: (value) {
+                      if (_isWalkInCustomer) return null;
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Phone number is required';
+                      }
+                      return null;
+                    },
+                    onFieldSubmitted: (_) => _focusNextField(_customerPhoneFocus),
+                  ),
                 ),
-                style: const TextStyle(fontStyle: FontStyle.italic),
-                onFieldSubmitted: (_) => _focusNextField(_customerAddressFocus),
               ),
-            ),
+              const SizedBox(width: 12),
+              // Address field
+              Expanded(
+                flex: 2,
+                child: RawKeyboardListener(
+                  focusNode: FocusNode(),
+                  onKey: (event) => _handleKeyNavigation(event, _customerAddressFocus),
+                  child: TextFormField(
+                    controller: _customerAddressController,
+                    focusNode: _customerAddressFocus,
+                    enabled: !_isWalkInCustomer,
+                    decoration: const InputDecoration(
+                      labelText: 'Address (Optional)',
+                      hintText: 'Enter customer address',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on, size: 20),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      filled: true,
+                      fillColor: Color(0xFFEEEEEE),
+                    ),
+                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    onFieldSubmitted: (_) => _focusNextField(_customerAddressFocus),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
   
