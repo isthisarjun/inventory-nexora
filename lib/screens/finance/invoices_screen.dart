@@ -154,26 +154,26 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   // Summary header
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    color: Colors.blue[50],
+                    color: const Color(0xFFF2FBF6),
                     child: Row(
                       children: [
-                        Icon(Icons.receipt_long, color: Colors.blue[700]),
+                        Icon(Icons.receipt_long, color: const Color(0xFF0F9D58)),
                         const SizedBox(width: 8),
                         Text(
                           '${_filteredOrders.length} Invoice${_filteredOrders.length != 1 ? 's' : ''} Available',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.blue[700],
+                            color: Color(0xFF0F9D58),
                           ),
                         ),
                         const Spacer(),
                         Text(
                           'Total Value: BHD ${_calculateTotalValue().toStringAsFixed(2)}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: Colors.blue[600],
+                            color: Color(0xFF0F9D58),
                           ),
                         ),
                       ],
@@ -404,112 +404,154 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.8,
             height: MediaQuery.of(context).size.height * 0.8,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Purchase Details',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF0F9D58).withValues(alpha: 0.16),
+                  const Color(0xFF34A853).withValues(alpha: 0.06),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF0F9D58),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(14),
+                        topRight: Radius.circular(14),
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                const Divider(thickness: 2),
-                const SizedBox(height: 16),
-                
-                // Customer Information
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildDetailSection('Customer Information', [
-                          _buildDetailRow('Name', _getCustomerName(order)),
-                          _buildDetailRow('Contact', order['customerPhone'] ?? order['contact'] ?? order['phone'] ?? 'N/A'),
-                          _buildDetailRow('Order ID', order['orderId'] ?? order['id'] ?? 'N/A'),
-                          _buildDetailRow('Date', order['date'] ?? order['orderDate'] ?? 'N/A'),
-                          _buildDetailRow('Status', order['status'] ?? 'N/A'),
-                          if (order['paymentMethod'] != null && order['paymentMethod'].toString().isNotEmpty)
-                            _buildDetailRow('Payment Method', order['paymentMethod']),
-                        ]),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // Items purchased
-                        _buildDetailSection('Items Purchased', [
-                          if (order['items'] != null && order['items'].toString().isNotEmpty)
-                            _buildItemsList(order['items'])
-                          else if (order['outfitType'] != null)
-                            _buildDetailRow('Item', order['outfitType'])
-                          else
-                            const Text('No items specified'),
-                        ]),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // Financial Information
-                        _buildDetailSection('Financial Summary', [
-                          _buildDetailRow('Total Purchase Amount', 
-                            'BHD ${(double.tryParse(order['totalAmount']?.toString() ?? '0') ?? 
-                                double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}'),
-                          if (order['materialsCost'] != null && double.tryParse(order['materialsCost']?.toString() ?? '0') != 0)
-                            _buildDetailRow('Materials Cost', 
-                              'BHD ${double.tryParse(order['materialsCost']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
-                          if (order['labourCost'] != null && double.tryParse(order['labourCost']?.toString() ?? '0') != 0)
-                            _buildDetailRow('Labour Cost', 
-                              'BHD ${double.tryParse(order['labourCost']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
-                          if (order['advanceAmount'] != null && double.tryParse(order['advanceAmount']?.toString() ?? '0') != 0)
-                            _buildDetailRow('Advance Paid', 
-                              'BHD ${double.tryParse(order['advanceAmount']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
-                          if (order['vatAmount'] != null && double.tryParse(order['vatAmount']?.toString() ?? '0') != 0)
-                            _buildDetailRow('VAT Amount', 
-                              'BHD ${double.tryParse(order['vatAmount']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
-                          if (order['paymentMethod'] != null && order['paymentMethod'].toString().isNotEmpty)
-                            _buildDetailRow('Payment Method', order['paymentMethod']),
-                          _buildDetailRow('Payment Status', order['paymentStatus'] ?? 'Unknown'),
-                        ]),
+                        const Expanded(
+                          child: Text(
+                            'Purchase Details',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          padding: const EdgeInsets.all(8),
+                          constraints: const BoxConstraints(),
+                        ),
                       ],
                     ),
                   ),
-                ),
-                
-                // Action buttons
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        // TODO: Implement print functionality
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Print functionality coming soon')),
-                        );
-                      },
-                      icon: const Icon(Icons.print),
-                      label: const Text('Print'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDetailSection(
+                              'Customer Information',
+                              [
+                                _buildDetailRow('Name', _getCustomerName(order)),
+                                _buildDetailRow('Contact', order['customerPhone'] ?? order['contact'] ?? order['phone'] ?? 'N/A'),
+                                _buildDetailRow('Order ID', order['orderId'] ?? order['id'] ?? 'N/A'),
+                                _buildDetailRow('Date', order['date'] ?? order['orderDate'] ?? 'N/A'),
+                                _buildDetailRow('Status', order['status'] ?? 'N/A'),
+                                if (order['paymentMethod'] != null && order['paymentMethod'].toString().isNotEmpty)
+                                  _buildDetailRow('Payment Method', order['paymentMethod']),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            // Items purchased
+                            _buildDetailSection(
+                              'Items Purchased',
+                              [
+                                if (order['items'] != null && order['items'].toString().isNotEmpty)
+                                  _buildItemsList(order['items'])
+                                else if (order['outfitType'] != null)
+                                  _buildDetailRow('Item', order['outfitType'])
+                                else
+                                  const Text('No items specified'),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            // Financial Information
+                            _buildDetailSection(
+                              'Financial Summary',
+                              [
+                                _buildDetailRow('Total Purchase Amount', 
+                                  'BHD ${(double.tryParse(order['totalAmount']?.toString() ?? '0') ?? 
+                                      double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}'),
+                                if (order['materialsCost'] != null && double.tryParse(order['materialsCost']?.toString() ?? '0') != 0)
+                                  _buildDetailRow('Materials Cost', 
+                                    'BHD ${double.tryParse(order['materialsCost']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
+                                if (order['labourCost'] != null && double.tryParse(order['labourCost']?.toString() ?? '0') != 0)
+                                  _buildDetailRow('Labour Cost', 
+                                    'BHD ${double.tryParse(order['labourCost']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
+                                if (order['advanceAmount'] != null && double.tryParse(order['advanceAmount']?.toString() ?? '0') != 0)
+                                  _buildDetailRow('Advance Paid', 
+                                    'BHD ${double.tryParse(order['advanceAmount']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
+                                if (order['vatAmount'] != null && double.tryParse(order['vatAmount']?.toString() ?? '0') != 0)
+                                  _buildDetailRow('VAT Amount', 
+                                    'BHD ${double.tryParse(order['vatAmount']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
+                                if (order['paymentMethod'] != null && order['paymentMethod'].toString().isNotEmpty)
+                                  _buildDetailRow('Payment Method', order['paymentMethod']),
+                                _buildDetailRow('Payment Status', order['paymentStatus'] ?? 'Unknown'),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  // Action buttons
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            // TODO: Implement print functionality
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Print functionality coming soon')),
+                            );
+                          },
+                          icon: const Icon(Icons.print),
+                          label: const Text('Print'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         );
@@ -526,11 +568,12 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.blue,
+            color: Color(0xFF0F9D58),
           ),
         ),
         const SizedBox(height: 8),
         Card(
+          color: const Color(0xFFF2FBF6),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
