@@ -14,17 +14,19 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   final ExcelService _excelService = ExcelService();
   
   List<Map<String, dynamic>> _orders = [];
+  List<Map<String, dynamic>> _purchases = [];
   bool _isLoading = true;
   String? _error;
   String _searchQuery = '';
+  String _invoiceType = 'sales';
 
   @override
   void initState() {
     super.initState();
-    _loadOrders();
+    _loadInvoices();
   }
 
-  void _loadOrders() async {
+  void _loadInvoices() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -32,6 +34,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
 
     try {
       final allOrders = await _excelService.loadOrdersFromExcel();
+      final allPurchases = await _excelService.getGroupedPurchaseHistory();
       
       // Sort by order date (newest first)
       allOrders.sort((a, b) {
@@ -40,8 +43,13 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
         return dateB.compareTo(dateA);
       });
 
+      for (final purchase in allPurchases) {
+        purchase['invoiceType'] = 'purchase';
+      }
+
       setState(() {
         _orders = allOrders;
+        _purchases = allPurchases;
         _isLoading = false;
       });
     } catch (e) {
@@ -53,146 +61,194 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredOrders {
+    final currentList = _invoiceType == 'sales' ? _orders : _purchases;
     if (_searchQuery.isEmpty) {
-      return _orders;
+      return currentList;
     }
-    return _orders.where((order) {
-      final customerName = _getCustomerName(order).toLowerCase();
-      final orderId = order['orderId']?.toString().toLowerCase() ?? '';
-      final items = order['items']?.toString().toLowerCase() ?? '';
+    return currentList.where((invoice) {
+      final name = _getInvoiceName(invoice).toLowerCase();
+      final invoiceId = _getInvoiceId(invoice).toLowerCase();
+      final items = invoice['items']?.toString().toLowerCase() ?? '';
       final query = _searchQuery.toLowerCase();
       
-      return customerName.contains(query) || 
-             orderId.contains(query) || 
+      return name.contains(query) || 
+             invoiceId.contains(query) || 
              items.contains(query);
     }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-          tooltip: 'Back to Home',
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+            tooltip: 'Back to Home',
+          ),
+          title: const Text('Invoices'),
+          backgroundColor: Theme.of(context).primaryColor,
+          foregroundColor: Colors.white,
+          bottom: TabBar(
+            onTap: (index) {
+              setState(() {
+                _invoiceType = index == 0 ? 'sales' : 'purchases';
+                _searchQuery = '';
+              });
+            },
+            tabs: [
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_cart),
+                    const SizedBox(width: 8),
+                    Text('Sales (${_orders.length})'),
+                  ],
+                ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.local_shipping),
+                    const SizedBox(width: 8),
+                    Text('Purchases (${_purchases.length})'),
+                  ],
+                ),
+              ),
+            ],
+            indicatorColor: Colors.white,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+          ),
         ),
-        title: const Text('Invoices'),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.red[300],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading invoices',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red[700],
+        body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: Colors.red[300],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadOrders,
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            )
-          : _orders.isEmpty
-            ? _buildEmptyState()
-            : Column(
-                children: [
-                  // Search bar
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    color: Colors.grey[50],
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search invoices by customer, order ID, or item...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey[300]!),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Theme.of(context).primaryColor),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading invoices',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red[700],
                       ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
                     ),
-                  ),
-                  
-                  // Summary header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    color: const Color(0xFFF2FBF6),
-                    child: Row(
-                      children: [
-                        Icon(Icons.receipt_long, color: const Color(0xFF0F9D58)),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${_filteredOrders.length} Invoice${_filteredOrders.length != 1 ? 's' : ''} Available',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0F9D58),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _loadInvoices,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              )
+            : _filteredOrders.isEmpty
+              ? _buildEmptyState()
+              : Column(
+                  children: [
+                    // Search bar
+                    Container(
+                      padding: const EdgeInsets.all(16.0),
+                      color: Colors.grey[50],
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search invoices by customer/vendor, invoice ID, or item...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          'Total Value: BHD ${_calculateTotalValue().toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF0F9D58),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
                           ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
-                      ],
+                        onChanged: (value) {
+                          setState(() {
+                            _searchQuery = value;
+                          });
+                        },
+                      ),
                     ),
-                  ),
-                  
-                  // Invoice list
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _filteredOrders.length,
-                      itemBuilder: (context, index) {
-                        final order = _filteredOrders[index];
-                        return _buildInvoiceCard(order);
-                      },
+                    
+                    // Summary header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      color: _invoiceType == 'sales' 
+                        ? const Color(0xFFF2FBF6)
+                        : const Color(0xFFFCF3E6),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _invoiceType == 'sales' ? Icons.receipt_long : Icons.receipt,
+                            color: _invoiceType == 'sales' 
+                              ? const Color(0xFF0F9D58)
+                              : const Color(0xFFF57C00),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${_filteredOrders.length} ${_invoiceType == 'sales' ? 'Sales' : 'Purchase'} Invoice${_filteredOrders.length != 1 ? 's' : ''} Available',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: _invoiceType == 'sales' 
+                                ? const Color(0xFF0F9D58)
+                                : const Color(0xFFF57C00),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Total: BHD ${_calculateTotalValue().toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: _invoiceType == 'sales' 
+                                ? const Color(0xFF0F9D58)
+                                : const Color(0xFFF57C00),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    
+                    // Invoice list
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filteredOrders.length,
+                        itemBuilder: (context, index) {
+                          final invoice = _filteredOrders[index];
+                          return _buildInvoiceCard(invoice);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+      ),
     );
   }
 
@@ -239,34 +295,35 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     );
   }
 
-  Widget _buildInvoiceCard(Map<String, dynamic> order) {
-    final customerName = _getCustomerName(order);
-    final orderId = order['orderId'] ?? order['id'] ?? 'N/A';
-    final orderDate = order['date'] ?? order['orderDate'] ?? 'N/A';
-    final totalAmount = double.tryParse(order['totalAmount']?.toString() ?? '0') ?? 
-                       double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0;
-    final paymentMethod = order['paymentMethod'] ?? 'N/A';
-    final status = order['status'] ?? 'N/A';
+  Widget _buildInvoiceCard(Map<String, dynamic> invoice) {
+    final isSales = invoice['invoiceType'] != 'purchase';
+    final partyName = isSales ? _getCustomerName(invoice) : (invoice['vendorName'] ?? 'N/A');
+    final invoiceId = _getInvoiceId(invoice);
+    final invoiceDate = _getInvoiceDate(invoice);
+    final totalAmount = double.tryParse(invoice['totalAmount']?.toString() ?? 
+                       invoice['totalCost']?.toString() ?? '0') ?? 0.0;
+    final paymentMethod = invoice['paymentMethod'] ?? invoice['paymentStatus'] ?? 'N/A';
+    final status = invoice['status'] ?? invoice['paymentStatus'] ?? 'N/A';
     
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
-        onTap: () => _showOrderDetails(order),
+        onTap: () => _showOrderDetails(invoice),
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Row: Customer Name and Total Amount
+              // Header Row: Party Name and Total Amount
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      customerName,
+                      partyName,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -276,10 +333,10 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   ),
                   Text(
                     'BHD ${totalAmount.toStringAsFixed(2)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: isSales ? Colors.green : Colors.orange,
                     ),
                   ),
                 ],
@@ -287,7 +344,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
               
               const SizedBox(height: 12),
               
-              // Order Details Row
+              // Invoice Details Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -295,7 +352,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Order ID: $orderId',
+                        '${isSales ? 'Order' : 'Purchase'} ID: $invoiceId',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -304,7 +361,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Date: $orderDate',
+                        'Date: $invoiceDate',
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
@@ -355,7 +412,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   Icon(Icons.touch_app, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 4),
                   Text(
-                    'Tap to view purchase details',
+                    'Tap to view ${isSales ? 'sales' : 'purchase'} details',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[600],
@@ -385,6 +442,27 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     return 'N/A';
   }
 
+  String _getInvoiceName(Map<String, dynamic> invoice) {
+    if (invoice['invoiceType'] == 'purchase') {
+      return invoice['vendorName']?.toString() ?? 'N/A';
+    }
+    return _getCustomerName(invoice);
+  }
+
+  String _getInvoiceId(Map<String, dynamic> invoice) {
+    if (invoice['invoiceType'] == 'purchase') {
+      return invoice['purchaseId']?.toString() ?? invoice['id']?.toString() ?? 'N/A';
+    }
+    return invoice['orderId']?.toString() ?? invoice['id']?.toString() ?? 'N/A';
+  }
+
+  String _getInvoiceDate(Map<String, dynamic> invoice) {
+    return invoice['date']?.toString() ??
+        invoice['orderDate']?.toString() ??
+        invoice['dateOfOrder']?.toString() ??
+        'N/A';
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'paid':
@@ -400,6 +478,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   void _showOrderDetails(Map<String, dynamic> order) {
+    final isSales = order['invoiceType'] != 'purchase';
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -442,10 +521,10 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Purchase Details',
-                            style: TextStyle(
+                            isSales ? 'Sales Details' : 'Purchase Details',
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -470,15 +549,28 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildDetailSection(
-                              'Customer Information',
+                              isSales ? 'Customer Information' : 'Vendor Information',
                               [
-                                _buildDetailRow('Name', _getCustomerName(order)),
-                                _buildDetailRow('Contact', order['customerPhone'] ?? order['contact'] ?? order['phone'] ?? 'N/A'),
-                                _buildDetailRow('Order ID', order['orderId'] ?? order['id'] ?? 'N/A'),
-                                _buildDetailRow('Date', order['date'] ?? order['orderDate'] ?? 'N/A'),
-                                _buildDetailRow('Status', order['status'] ?? 'N/A'),
+                                _buildDetailRow('Name', _getInvoiceName(order)),
+                                _buildDetailRow(
+                                  'Contact',
+                                  order['customerPhone'] ??
+                                      order['contact'] ??
+                                      order['phone'] ??
+                                      order['vendorContact'] ??
+                                      order['vendorPhone'] ??
+                                      'N/A',
+                                ),
+                                _buildDetailRow(
+                                  isSales ? 'Order ID' : 'Purchase ID',
+                                  _getInvoiceId(order),
+                                ),
+                                _buildDetailRow('Date', _getInvoiceDate(order)),
+                                _buildDetailRow('Status', order['status'] ?? order['paymentStatus'] ?? 'N/A'),
                                 if (order['paymentMethod'] != null && order['paymentMethod'].toString().isNotEmpty)
                                   _buildDetailRow('Payment Method', order['paymentMethod']),
+                                if (order['paymentStatus'] != null && order['paymentStatus'].toString().isNotEmpty)
+                                  _buildDetailRow('Payment Status', order['paymentStatus']),
                               ],
                             ),
                             const SizedBox(height: 24),
@@ -499,9 +591,11 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                             _buildDetailSection(
                               'Financial Summary',
                               [
-                                _buildDetailRow('Total Purchase Amount', 
+                                _buildDetailRow(
+                                  isSales ? 'Total Sales Amount' : 'Total Purchase Amount',
                                   'BHD ${(double.tryParse(order['totalAmount']?.toString() ?? '0') ?? 
-                                      double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}'),
+                                      double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+                                ),
                                 if (order['materialsCost'] != null && double.tryParse(order['materialsCost']?.toString() ?? '0') != 0)
                                   _buildDetailRow('Materials Cost', 
                                     'BHD ${double.tryParse(order['materialsCost']?.toString() ?? '0')?.toStringAsFixed(2) ?? '0.00'}'),
@@ -761,9 +855,10 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   double _calculateTotalValue() {
-    return _filteredOrders.fold(0.0, (sum, order) {
-      final totalCost = double.tryParse(order['totalCost']?.toString() ?? '0') ?? 0.0;
-      return sum + totalCost;
+    return _filteredOrders.fold(0.0, (sum, invoice) {
+      final totalAmount = double.tryParse(invoice['totalAmount']?.toString() ?? '0') ??
+          double.tryParse(invoice['totalCost']?.toString() ?? '0') ?? 0.0;
+      return sum + totalAmount;
     });
   }
 }
