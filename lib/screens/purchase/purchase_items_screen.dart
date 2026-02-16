@@ -433,28 +433,16 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       final success = await _excelService.savePurchaseToExcel(purchaseData);
       
       if (success) {
-        // Update inventory quantities
-        int successfulUpdates = 0;
-        
+        // Update inventory stock and cost using weighted average formula
         for (final item in _purchaseItems) {
-          final updateSuccess = await _excelService.updateInventoryQuantity(
+          await _excelService.updateInventoryStockAndCost(
             item['itemId'],
             item['quantity'],
-            itemName: item['itemName'],
-            unit: item['unit'],
-            unitCost: item['unitCost'],
+            item['actualCost'], // Use VAT-exclusive cost for weighted average
           );
-          
-          if (updateSuccess) {
-            successfulUpdates++;
-          }
         }
         
-        if (successfulUpdates == _purchaseItems.length) {
-          _showSuccessSnackBar('Purchase saved successfully! Updated $successfulUpdates items in inventory.');
-        } else {
-          _showSuccessSnackBar('Purchase saved. Updated $successfulUpdates of ${_purchaseItems.length} items in inventory.');
-        }
+        _showSuccessSnackBar('Purchase saved successfully! Updated ${_purchaseItems.length} items in inventory.');
         
         _resetForm();
       } else {
