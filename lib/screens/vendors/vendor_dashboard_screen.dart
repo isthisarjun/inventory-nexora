@@ -10,7 +10,7 @@ class VendorDashboardScreen extends StatefulWidget {
   
   const VendorDashboardScreen({
     super.key,
-    required this.vendorName,
+    required this.vendorName
   });
 
   @override
@@ -123,11 +123,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             onPressed: () => context.pop(),
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: _showEditVendorDialog,
-              tooltip: 'Edit Vendor',
-            ),
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _loadVendorData,
@@ -1319,22 +1314,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             },
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditVendorDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Vendor'),
-        content: const Text('Edit vendor functionality will be implemented here'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -279,7 +279,11 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
     final creditAmount = vendor['currentCredit'] as double? ?? 0.0;
     final hasActiveCredit = creditAmount > 0;
     final vendorName = vendor['vendorName']?.toString() ?? 'Unknown Vendor';
-    
+
+    if (vendorName.isEmpty) {
+      print('Error: Vendor name is missing for vendor: $vendor');
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Card(
@@ -292,20 +296,23 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _navigateToVendorDashboard(vendorName),
+          onTap: vendorName.isNotEmpty
+              ? () => _navigateToVendorDashboard(vendorName)
+              : null, // Disable tap if vendorName is invalid
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Leading CircleAvatar
                 CircleAvatar(
                   backgroundColor: hasActiveCredit 
                       ? Colors.orange[100] 
                       : Colors.orange[50],
                   child: Text(
-                    vendorName.substring(0, 1).toUpperCase(),
+                    vendorName.isNotEmpty
+                        ? vendorName.substring(0, 1).toUpperCase()
+                        : '?',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: hasActiveCredit 
@@ -314,72 +321,24 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
                     ),
                   ),
                 ),
-                
                 const SizedBox(width: 16),
-                
-                // Content area - properly aligned
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Vendor Name - perfectly aligned
-                      Container(
-                        width: double.infinity,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          vendorName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          textAlign: TextAlign.start,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                      Text(
+                        vendorName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                      ),
-                      
-                      const SizedBox(height: 4),
-                      
-                      // Subtitle - perfectly aligned
-                      Container(
-                        width: double.infinity,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (vendor['city']?.toString().isNotEmpty == true) ...[
-                              Icon(Icons.location_city, 
-                                   size: 14, 
-                                   color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                vendor['city'].toString(),
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
-                            if (hasActiveCredit) ...[
-                              Icon(Icons.account_balance_wallet, 
-                                   size: 14, 
-                                   color: Colors.orange[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                'BHD ${creditAmount.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: Colors.orange[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ],
                   ),
                 ),
-                
-                // Trailing Icon
                 const Icon(
                   Icons.arrow_forward_ios,
                   size: 16,
@@ -393,9 +352,34 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
     );
   }
 
-  void _navigateToVendorDashboard(String vendorName) {
-    // Navigate to vendor dashboard screen
-    context.push('/vendor-dashboard/${Uri.encodeComponent(vendorName)}');
+  void _navigateToVendorDashboard(String? vendorName) {
+    if (vendorName == null || vendorName.isEmpty) {
+      print('Error: Vendor name is null or empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to navigate: Vendor name is missing'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final encodedVendorName = Uri.encodeComponent(vendorName);
+      print('Navigating to Vendor Dashboard with vendorName: $vendorName');
+      print('Encoded vendorName: $encodedVendorName');
+      context.push('/vendor-dashboard/$encodedVendorName');
+      print('Navigation to /vendor-dashboard/$encodedVendorName successful');
+    } catch (e, stackTrace) {
+      print('Error navigating to vendor dashboard: $e');
+      print('Stack trace: $stackTrace');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to navigate to vendor dashboard'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showAddVendorDialog() {
