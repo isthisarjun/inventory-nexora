@@ -208,7 +208,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: LinearGradient(
-              colors: [Colors.orange[400]!, Colors.orange[600]!],
+              colors: [Colors.green[400]!, Colors.green[600]!],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -223,7 +223,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange[600],
+                    color: Colors.green[600],
                   ),
                 ),
               ),
@@ -344,7 +344,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.account_balance_wallet, color: Colors.orange[600], size: 28),
+                  Icon(Icons.account_balance_wallet, color: Colors.green[600], size: 28),
                   const SizedBox(width: 12),
                   const Text(
                     'Credit Usage',
@@ -379,7 +379,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       _buildCreditDetailRow(
                         'Used Credit', 
                         'BHD ${currentCredit.toStringAsFixed(2)}',
-                        Colors.orange[600]!,
+                        Colors.green[600]!,
                       ),
                       const SizedBox(height: 12),
                       _buildCreditDetailRow(
@@ -391,7 +391,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       _buildCreditDetailRow(
                         'Credit Limit', 
                         'BHD ${maxCredit.toStringAsFixed(2)}',
-                        Colors.blue[600]!,
+                        Colors.green[600]!,
                       ),
                       const SizedBox(height: 16),
                       
@@ -474,7 +474,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.shopping_cart, color: Colors.orange[600], size: 28),
+                      Icon(Icons.shopping_cart, color: Colors.green[600], size: 28),
                       const SizedBox(width: 12),
                       const Text(
                         'Recent Purchases',
@@ -533,10 +533,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       child: ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: CircleAvatar(
-                          backgroundColor: Colors.orange[100],
+                          backgroundColor: Colors.green[100],
                           child: Icon(
                             Icons.inventory,
-                            color: Colors.orange[600],
+                            color: Colors.green[600],
                           ),
                         ),
                         title: SizedBox(
@@ -571,7 +571,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                           'BHD ${totalAmount.toStringAsFixed(2)}',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.orange[700],
+                            color: Colors.green[700],
                             fontSize: 16,
                           ),
                         ),
@@ -744,7 +744,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.timeline, color: Colors.orange[600], size: 28),
+                  Icon(Icons.timeline, color: Colors.green[600], size: 28),
                   const SizedBox(width: 12),
                   const Text(
                     'Payment Timeline',
@@ -784,7 +784,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                             LineChartBarData(
                               spots: _generateChartSpots(),
                               isCurved: true,
-                              color: Colors.orange,
+                              color: Colors.green,
                               barWidth: 3,
                               dotData: FlDotData(show: true),
                             ),
@@ -812,7 +812,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.info, color: Colors.orange[600], size: 28),
+                  Icon(Icons.info, color: Colors.green[600], size: 28),
                   const SizedBox(width: 12),
                   const Text(
                     'Vendor Details',
@@ -1286,10 +1286,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               
               return ListTile(
                 leading: CircleAvatar(
-                  backgroundColor: Colors.orange[100],
+                  backgroundColor: Colors.green[100],
                   child: Icon(
                     Icons.inventory,
-                    color: Colors.orange[600],
+                    color: Colors.green[600],
                   ),
                 ),
                 title: Text(purchase['itemName']?.toString() ?? 'Unknown Item'),
@@ -1307,7 +1307,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   'BHD ${displayTotal.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange[700],
+                    color: Colors.green[700],
                   ),
                 ),
               );
@@ -1330,7 +1330,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Icon(Icons.language, color: Colors.orange[600]),
+            Icon(Icons.language, color: Colors.green[600]),
             const SizedBox(width: 12),
             const Text('Vendor Website'),
           ],

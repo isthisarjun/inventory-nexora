@@ -133,7 +133,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
                 // Header with summary
                 Container(
                   padding: const EdgeInsets.all(16),
-                  color: Colors.orange[50],
+                  color: Colors.green[50], // Changed to green accent
                   child: Column(
                     children: [
                       Row(
@@ -150,7 +150,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
                                       style: const TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.bold,
-                                        color: Colors.orange,
+                                        color: Colors.green, // Changed to green accent
                                       ),
                                     ),
                                     const Text('Total Vendors'),
@@ -176,7 +176,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
                                           style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.orange,
+                                            color: Colors.red, // Changed to red
                                           ),
                                         );
                                       },
@@ -291,7 +291,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: hasActiveCredit 
-              ? BorderSide(color: Colors.orange[200]!, width: 1)
+              ? BorderSide(color: Colors.green[200]!, width: 1) // Changed to green accent
               : BorderSide.none,
         ),
         child: InkWell(
@@ -306,18 +306,13 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 CircleAvatar(
-                  backgroundColor: hasActiveCredit 
-                      ? Colors.orange[100] 
-                      : Colors.orange[50],
+                  backgroundColor: Colors.green[100], // Changed to green accent
                   child: Text(
-                    vendorName.isNotEmpty
-                        ? vendorName.substring(0, 1).toUpperCase()
-                        : '?',
-                    style: TextStyle(
+                    vendorName.substring(0, 1).toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: hasActiveCredit 
-                          ? Colors.orange[700] 
-                          : Colors.orange[600],
+                      color: Colors.green, // Changed to green accent
                     ),
                   ),
                 ),
@@ -330,12 +325,20 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
                       Text(
                         vendorName,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
                           fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
+                      if (hasActiveCredit)
+                        Text(
+                          'BHD ${creditAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.green, // Changed to green accent
+                          ),
+                        ),
                     ],
                   ),
                 ),
