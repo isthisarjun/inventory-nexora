@@ -12,7 +12,6 @@ class AllAccountsScreen extends StatefulWidget {
 class _AllAccountsScreenState extends State<AllAccountsScreen> with SingleTickerProviderStateMixin {
   List<Account> _allAccounts = [];
   String _searchQuery = '';
-  final String _filterType = 'all'; // 'all', 'customers', 'suppliers', 'outstanding'
   late TabController _tabController;
 
   @override

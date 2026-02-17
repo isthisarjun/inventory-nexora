@@ -137,7 +137,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: Color.fromARGB(255, 0, 0, 0),
                             ),
                           ),
                         ],
@@ -229,7 +229,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               items: _availableCategories.map((category) {
                                 return DropdownMenuItem(
                                   value: category,
-                                  child: Text(category, style: const TextStyle(fontSize: 14)),
+                                  child: Text(category, style: const TextStyle(fontSize: 14, color: Colors.black)),
                                 );
                               }).toList(),
                               onChanged: (value) {
@@ -259,7 +259,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               items: _paymentMethods.map((method) {
                                 return DropdownMenuItem(
                                   value: method,
-                                  child: Text(method, style: const TextStyle(fontSize: 14)),
+                                  child: Text(method, style: const TextStyle(fontSize: 14, color: Colors.black)),
                                 );
                               }).toList(),
                               onChanged: (value) {

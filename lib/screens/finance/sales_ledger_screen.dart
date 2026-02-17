@@ -31,7 +31,7 @@ class _SalesLedgerScreenState extends State<SalesLedgerScreen> {
       // Load sales records directly from sales_records.xlsx
       final salesRecords = await _excelService.getGroupedSalesFromExcel();
 
-      if (salesRecords == null || salesRecords.isEmpty) {
+      if (salesRecords.isEmpty) {
         setState(() {
           _isLoading = false;
           _errorMessage = 'No sales records found in sales_records.xlsx';

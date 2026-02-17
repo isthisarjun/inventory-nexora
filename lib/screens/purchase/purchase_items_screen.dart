@@ -24,9 +24,6 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   final _notesController = TextEditingController();
   final _vendorSearchController = TextEditingController();
   
-  // Global keys for dropdown controls
-  final GlobalKey _itemDropdownKey = GlobalKey();
-  
   // Search state
   List<Map<String, dynamic>> _filteredVendors = [];
   bool _showVendorSuggestions = false;

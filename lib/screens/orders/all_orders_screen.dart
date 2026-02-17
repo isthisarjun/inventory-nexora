@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:excel/excel.dart' as excel_lib;
+import 'package:path_provider/path_provider.dart';
 import 'package:tailor_v3/routes/app_routes.dart';
 import 'package:tailor_v3/services/excel_service.dart';
 
@@ -863,292 +866,89 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     );
   }
 
-  void _processReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) {
+  void _processReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) async {
     // Close the return dialog
     Navigator.of(context).pop();
-    
-    // Show confirmation dialog
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.warning, color: Colors.orange[600]),
-              const SizedBox(width: 8),
-              const Text('Confirm Return'),
+
+    // Prepare data for Excel
+    final List<List<dynamic>> rows = [];
+    final String returnDate = DateFormat('dd/MM/yyyy').format(DateTime.now());
+    final String processedBy = 'LoggedInUser'; // Replace with actual user info if available
+
+    returnItems.forEach((index, item) {
+      rows.add([
+        returnDate, // Return Date
+        order['orderId'], // Original Sale ID
+        order['customerName'], // Customer Name
+        item['itemName'], // Item Name
+        item['returnQuantity'], // Return Quantity
+        (item['returnQuantity'] * item['unitPrice']).toStringAsFixed(2), // Return Amount
+        returnReason, // Return Reason
+        processedBy // Processed By
+      ]);
+    });
+
+    try {
+      // Load the returns_log.xlsx file
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/returns_log.xlsx';
+      final file = File(filePath);
+
+      if (!await file.exists()) {
+        // If file doesn't exist, create it with headers
+        final excel = excel_lib.Excel.createExcel();
+        final sheet = excel['Returns'];
+        sheet.appendRow([
+          'Return Date', 'Original Sale ID', 'Customer Name', 'Item Name', 'Return Quantity', 'Return Amount', 'Return Reason', 'Processed By'
+        ]);
+        await file.writeAsBytes(excel.encode()!);
+      }
+
+      // Append rows to the Excel file
+      final bytes = await file.readAsBytes();
+      final excel = excel_lib.Excel.decodeBytes(bytes);
+      final sheet = excel['Returns'];
+
+      for (final row in rows) {
+        sheet.appendRow(row);
+      }
+
+      // Save the updated Excel file
+      await file.writeAsBytes(excel.encode()!);
+
+      // Show success message
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Success'),
+            content: const Text('Return details have been successfully saved to returns_log.xlsx.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
             ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Are you sure you want to process this return for Sale #${order['orderId']}?'),
-              const SizedBox(height: 12),
-              const Text('Items to return:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...returnItems.values.map((item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
-                child: Text('• ${item['itemName']}: ${item['returnQuantity'].toStringAsFixed(1)} units'),
-              )),
-              const SizedBox(height: 12),
-              if (returnReason.isNotEmpty) ...[
-                const Text('Return Reason:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.orange[50],
-                    border: Border.all(color: Colors.orange[200]!),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    returnReason,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.orange[700],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-              Text(
-                'Total refund: BHD ${returnItems.values.fold(0.0, (sum, item) => sum + (item['returnQuantity'] * item['unitPrice'])).toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
-                ),
+          );
+        },
+      );
+    } catch (e) {
+      // Show error message
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text('Failed to save return details: $e'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _executeReturn(order, returnItems, returnReason);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[600],
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Confirm Return'), 
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _executeReturn(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) async {
-    bool success = true;
-    List<String> processedItems = [];
-    List<String> failedItems = [];
-
-    try {
-      // Process each returned item
-      for (final returnItem in returnItems.values) {
-        final itemName = returnItem['itemName'] as String;
-        final returnQuantity = returnItem['returnQuantity'] as double;
-        
-        try {
-          // Find the item in inventory by name and add stock back
-          final inventoryUpdated = await _addReturnedItemToInventory(itemName, returnQuantity);
-          
-          if (inventoryUpdated) {
-            processedItems.add('$itemName (${returnQuantity.toStringAsFixed(1)} units)');
-          } else {
-            failedItems.add('$itemName (${returnQuantity.toStringAsFixed(1)} units)');
-            success = false;
-          }
-        } catch (e) {
-          debugPrint('Error processing return for item $itemName: $e');
-          failedItems.add('$itemName (${returnQuantity.toStringAsFixed(1)} units)');
-          success = false;
-        }
-      }
-
-      // Create a return record for tracking
-      await _createReturnRecord(order, returnItems, returnReason);
-
-      // Show appropriate success/failure message
-      if (mounted) {
-        if (success && failedItems.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Return processed successfully for Sale #${order['orderId']}. Items added back to inventory.',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.green[600],
-              duration: const Duration(seconds: 4),
-            ),
           );
-        } else if (processedItems.isNotEmpty) {
-          // Partial success
-          ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Return partially processed for Sale #${order['orderId']}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-                if (processedItems.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text('✓ Successfully returned: ${processedItems.join(', ')}', 
-                       style: const TextStyle(color: Colors.white, fontSize: 12)),
-                ],
-                if (failedItems.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text('✗ Failed to return: ${failedItems.join(', ')}', 
-                       style: const TextStyle(color: Colors.white, fontSize: 12)),
-                ],
-              ],
-            ),
-            backgroundColor: Colors.orange[600],
-            duration: const Duration(seconds: 6),
-          ),
-        );
-        } else {
-          // Complete failure
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(Icons.error, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Failed to process return for Sale #${order['orderId']}. Please try again.',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-              backgroundColor: Colors.red[600],
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error executing return: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Error processing return: $e',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red[600],
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
-
-    // Refresh the orders list to reflect any changes
-    _loadOrders();
-  }
-
-  /// Find inventory item by name and add returned quantity back to stock
-  Future<bool> _addReturnedItemToInventory(String itemName, double returnQuantity) async {
-    try {
-      // Load all inventory items to find the one with matching name
-      final inventoryItems = await _excelService.loadInventoryItemsFromExcel();
-      
-      // Find item by name (case-insensitive)
-      final matchingItem = inventoryItems.where((item) {
-        final inventoryItemName = (item['name'] as String? ?? '').toLowerCase().trim();
-        final searchItemName = itemName.toLowerCase().trim();
-        return inventoryItemName == searchItemName;
-      }).firstOrNull;
-      
-      if (matchingItem == null) {
-        debugPrint('Item not found in inventory: $itemName');
-        return false;
-      }
-      
-      final itemId = matchingItem['id'] as String;
-      debugPrint('Found item in inventory: $itemName (ID: $itemId)');
-      
-      // Add the returned quantity back to stock
-      final success = await _excelService.addInventoryItemStock(itemId, returnQuantity);
-      
-      if (success) {
-        debugPrint('Successfully added $returnQuantity units of $itemName back to inventory');
-      } else {
-        debugPrint('Failed to add $returnQuantity units of $itemName back to inventory');
-      }
-      
-      return success;
-    } catch (e) {
-      debugPrint('Error adding returned item to inventory: $e');
-      return false;
-    }
-  }
-
-  /// Create a record of the return transaction
-  Future<void> _createReturnRecord(Map<String, dynamic> order, Map<int, Map<String, dynamic>> returnItems, String returnReason) async {
-    try {
-      // TODO: Implement return record creation
-      // This could be a new sheet in Excel or a separate returns file
-      // For now, just log the return details
-      
-      final returnDetails = {
-        'returnDate': DateTime.now().toIso8601String(),
-        'originalSaleId': order['orderId'],
-        'customerName': order['customerName'],
-        'returnReason': returnReason.isNotEmpty ? returnReason : 'No reason provided',
-        'returnedItems': returnItems.values.map((item) => {
-          'itemName': item['itemName'],
-          'returnQuantity': item['returnQuantity'],
-          'returnAmount': item['returnQuantity'] * item['unitPrice'],
-        }).toList(),
-        'totalReturnAmount': returnItems.values.fold(0.0, 
-          (sum, item) => sum + (item['returnQuantity'] * item['unitPrice'])),
-      };
-      
-      debugPrint('Return record created: $returnDetails');
-      
-      // In a future implementation, you could:
-      // 1. Save this to a returns_log.xlsx file
-      // 2. Update the original sale record with return information
-      // 3. Generate a return receipt
-      // 4. Update financial records
-      
-    } catch (e) {
-      debugPrint('Error creating return record: $e');
+        },
+      );
     }
   }
 
