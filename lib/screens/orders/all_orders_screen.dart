@@ -43,6 +43,15 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     try {
       // Load grouped sales records from sales_records.xlsx
       final groupedSalesRecords = await _excelService.getGroupedSalesFromExcel();
+
+      // Cross-reference returns_log.xlsx to mark returned orders
+      final returnedOrderIds = await _getReturnedOrderIds();
+      for (final order in groupedSalesRecords) {
+        final orderId = order['orderId']?.toString() ?? '';
+        if (returnedOrderIds.contains(orderId)) {
+          order['status'] = 'returned';
+        }
+      }
       
       setState(() {
         _allOrders = groupedSalesRecords;
@@ -58,6 +67,30 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  /// Returns the set of order IDs that have at least one entry in returns_log.xlsx.
+  Future<Set<String>> _getReturnedOrderIds() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/returns_log.xlsx';
+      final file = File(filePath);
+      if (!await file.exists()) return {};
+      final bytes = await file.readAsBytes();
+      final excel = excel_lib.Excel.decodeBytes(bytes);
+      final sheet = excel['Returns'];
+      final ids = <String>{};
+      for (int i = 1; i < sheet.maxRows; i++) {
+        final row = sheet.row(i);
+        if (row.length < 2) continue;
+        final id = row[1]?.value?.toString() ?? '';
+        if (id.isNotEmpty) ids.add(id);
+      }
+      return ids;
+    } catch (e) {
+      debugPrint('Error reading returned order IDs: $e');
+      return {};
     }
   }
 
@@ -138,6 +171,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         return 'Delivered';
       case 'cancelled':
         return 'Cancelled';
+      case 'returned':
+        return 'Returned';
       default:
         return status.toUpperCase();
     }
@@ -158,6 +193,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         return Colors.green[900]!;
       case 'cancelled':
         return Colors.red[700]!;
+      case 'returned':
+        return Colors.deepOrange[700]!;
       default:
         return Colors.grey[700]!;
     }
@@ -178,12 +215,52 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         return Icons.done_all;
       case 'cancelled':
         return Icons.cancel;
+      case 'returned':
+        return Icons.keyboard_return;
       default:
         return Icons.help;
     }
   }
 
-  void _showOrderDetails(Map<String, dynamic> order) {
+  /// Reads returns_log.xlsx and returns a map of {itemName: totalReturnedQty}
+  /// for the given [orderId].
+  Future<Map<String, double>> _getReturnedQuantitiesForOrder(String orderId) async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = '${directory.path}/returns_log.xlsx';
+      final file = File(filePath);
+      if (!await file.exists()) return {};
+
+      final bytes = await file.readAsBytes();
+      final excel = excel_lib.Excel.decodeBytes(bytes);
+      final sheet = excel['Returns'];
+
+      final Map<String, double> returnedQtys = {};
+      // Row 0 is the header; start from row 1
+      for (int i = 1; i < sheet.maxRows; i++) {
+        final row = sheet.row(i);
+        if (row.length < 5) continue;
+        final rowOrderId = row[1]?.value?.toString() ?? '';
+        if (rowOrderId == orderId) {
+          final itemName = row[3]?.value?.toString() ?? '';
+          final returnQty =
+              double.tryParse(row[4]?.value?.toString() ?? '0') ?? 0.0;
+          returnedQtys[itemName] = (returnedQtys[itemName] ?? 0.0) + returnQty;
+        }
+      }
+      return returnedQtys;
+    } catch (e) {
+      debugPrint('Error loading returned quantities: $e');
+      return {};
+    }
+  }
+
+  void _showOrderDetails(Map<String, dynamic> order) async {
+    // Load any previous returns for this order before opening the dialog
+    final orderId = order['orderId']?.toString() ?? '';
+    final returnedQuantities = await _getReturnedQuantitiesForOrder(orderId);
+    final hasReturns = returnedQuantities.isNotEmpty;
+
     final totalAmount = (order['totalCost'] ?? 0.0) as double;
     final profit = (order['profit'] ?? 0.0) as double;
     final quantity = (order['quantity'] ?? 0.0) as double;
@@ -213,11 +290,11 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 🟢 GREEN HEADER SECTION
+                // 🟢/🟠 HEADER SECTION (orange when returned)
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.green[700],
+                    color: hasReturns ? Colors.deepOrange[700] : Colors.green[700],
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
@@ -227,8 +304,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(
-                            Icons.receipt_long,
+                          Icon(
+                            hasReturns ? Icons.keyboard_return : Icons.receipt_long,
                             color: Colors.white,
                             size: 24,
                           ),
@@ -243,6 +320,24 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                               ),
                             ),
                           ),
+                          if (hasReturns)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.25),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withOpacity(0.6)),
+                              ),
+                              child: const Text(
+                                'RETURNED',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -325,29 +420,65 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                         const SizedBox(height: 16),
                         // Items list
                         if (order['itemsList'] != null && order['itemsList'].isNotEmpty)
-                          ...order['itemsList'].map<Widget>((item) => Container(
+                          ...order['itemsList'].map<Widget>((item) {
+                            final itemName = item['itemName'] ?? 'Unknown Item';
+                            final originalQty = (item['quantity'] ?? 0.0) as double;
+                            final returnedQty = returnedQuantities[itemName] ?? 0.0;
+                            final netQty = (originalQty - returnedQty).clamp(0.0, double.infinity);
+                            final isPartiallyReturned = returnedQty > 0;
+                            return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
+                              color: isPartiallyReturned ? Colors.deepOrange[50] : Colors.grey[50],
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey[200]!),
+                              border: Border.all(
+                                color: isPartiallyReturned ? Colors.deepOrange[200]! : Colors.grey[200]!,
+                                width: isPartiallyReturned ? 1.5 : 1,
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  item['itemName'] ?? 'Unknown Item',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        itemName,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isPartiallyReturned)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.deepOrange[100],
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          '${returnedQty.toStringAsFixed(1)} returned',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.deepOrange[800],
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     Expanded(
-                                      child: _buildDetailRow('Quantity', '${item['quantity']?.toStringAsFixed(1) ?? '0'}'),
+                                      child: _buildDetailRow(
+                                        'Quantity',
+                                        isPartiallyReturned
+                                            ? '${netQty.toStringAsFixed(1)} (was ${originalQty.toStringAsFixed(1)})'
+                                            : netQty.toStringAsFixed(1),
+                                      ),
                                     ),
                                     Expanded(
                                       child: _buildDetailRow('Total Sale', 'BHD ${item['totalSale']?.toStringAsFixed(2) ?? '0.00'}'),
@@ -358,7 +489,8 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                 _buildDetailRow('Profit', 'BHD ${item['profit']?.toStringAsFixed(2) ?? '0.00'}', isProfit: true),
                               ],
                             ),
-                          )).toList()
+                          );
+                          }).toList()
                         else
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -402,10 +534,21 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                             'Total Quantity:',
                             style: TextStyle(fontSize: 14),
                           ),
-                          Text(
-                            '${quantity.toStringAsFixed(1)} units',
-                            style: const TextStyle(fontSize: 14),
-                          ),
+                          Builder(builder: (_) {
+                            final totalReturned = returnedQuantities.values
+                                .fold(0.0, (sum, q) => sum + q);
+                            final netQty = (quantity - totalReturned).clamp(0.0, double.infinity);
+                            return Text(
+                              hasReturns
+                                  ? '${netQty.toStringAsFixed(1)} units (${totalReturned.toStringAsFixed(1)} returned)'
+                                  : '${quantity.toStringAsFixed(1)} units',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: hasReturns ? Colors.deepOrange[700] : Colors.black87,
+                                fontWeight: hasReturns ? FontWeight.w600 : FontWeight.normal,
+                              ),
+                            );
+                          }),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -915,6 +1058,19 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
 
       // Save the updated Excel file
       await file.writeAsBytes(excel.encode()!);
+
+      // Update the in-memory order status to 'returned' so the list card reflects it
+      final orderId = order['orderId']?.toString();
+      if (orderId != null) {
+        setState(() {
+          final idx = _allOrders.indexWhere(
+              (o) => o['orderId']?.toString() == orderId);
+          if (idx != -1) {
+            _allOrders[idx] = Map<String, dynamic>.from(_allOrders[idx])
+              ..['status'] = 'returned';
+          }
+        });
+      }
 
       // Show success message
       showDialog(
