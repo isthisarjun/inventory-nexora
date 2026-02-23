@@ -533,6 +533,7 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                   child: Form(
                     key: _formKey,
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         // Row 1: Vendor Name, Contact Number, Email
                         Row(
@@ -552,6 +553,9 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter vendor name';
                                     }
+                                    if (removeEmojis(value) != value) {
+                                      return 'Emojis are not allowed';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -565,6 +569,7 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                   controller: _contactController,
                                   style: const TextStyle(fontSize: 14),
                                   keyboardType: TextInputType.phone,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: const InputDecoration(
                                     labelText: 'Contact Number *',
                                     border: OutlineInputBorder(),
@@ -588,18 +593,15 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                   controller: _emailController,
                                   style: const TextStyle(fontSize: 14),
                                   keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email Address *',
-                                    border: OutlineInputBorder(),
-                                    hintText: 'vendor@example.com',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter email address';
                                     }
                                     if (!value.contains('@') || !value.contains('.')) {
                                       return 'Please enter a valid email address';
+                                    }
+                                    if (removeEmojis(value) != value) {
+                                      return 'Emojis are not allowed';
                                     }
                                     return null;
                                   },
@@ -671,6 +673,8 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                 child: TextFormField(
                                   controller: _vatNumberController,
                                   style: const TextStyle(fontSize: 14),
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: const InputDecoration(
                                     labelText: 'VAT Number',
                                     border: OutlineInputBorder(),
@@ -678,6 +682,15 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                     prefixIcon: Icon(Icons.numbers, size: 20),
                                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   ),
+                                  validator: (value) {
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter VAT number';
+                                    }
+                                    if (value.length != 14) {
+                                      return 'VAT number must be exactly 14 digits';
+                                    }
+                                    return null;
+                                  },
                                 ),
                               ),
                             ),
@@ -696,6 +709,7 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                   controller: _maximumCreditController,
                                   style: const TextStyle(fontSize: 14),
                                   keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: const InputDecoration(
                                     labelText: 'Maximum Credit (BHD)',
                                     border: OutlineInputBorder(),
@@ -704,10 +718,8 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   ),
                                   validator: (value) {
-                                    if (value != null && value.isNotEmpty) {
-                                      if (double.tryParse(value) == null || double.parse(value) < 0) {
-                                        return 'Please enter a valid maximum credit amount';
-                                      }
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter maximum credit';
                                     }
                                     return null;
                                   },
@@ -722,6 +734,7 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                   controller: _creditLimitController,
                                   style: const TextStyle(fontSize: 14),
                                   keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                   decoration: const InputDecoration(
                                     labelText: 'Current Credit (BHD)',
                                     border: OutlineInputBorder(),
@@ -730,10 +743,8 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                   ),
                                   validator: (value) {
-                                    if (value != null && value.isNotEmpty) {
-                                      if (double.tryParse(value) == null || double.parse(value) < 0) {
-                                        return 'Please enter a valid current credit amount';
-                                      }
+                                    if (value == null || value.trim().isEmpty) {
+                                      return 'Please enter current credit';
                                     }
                                     return null;
                                   },
@@ -1113,7 +1124,15 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
               _buildTextField(
                 controller: _nameController,
                 label: 'Vendor Name *',
-                validator: (value) => value?.trim().isEmpty == true ? 'Please enter vendor name' : null,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter vendor name';
+                  }
+                  if (removeEmojis(value) != value) {
+                    return 'Emojis are not allowed';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -1121,7 +1140,13 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
                 label: 'Contact Number *',
                 hintText: '+973 1234 5678',
                 keyboardType: TextInputType.phone,
-                validator: (value) => value?.trim().isEmpty == true ? 'Please enter contact number' : null,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter contact number';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               _buildTextField(
@@ -1130,52 +1155,45 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
                 hintText: 'vendor@example.com',
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value?.trim().isEmpty == true) return 'Please enter email address';
-                  if (value != null && (!value.contains('@') || !value.contains('.'))) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter email address';
+                  }
+                  if (!value.contains('@') || !value.contains('.')) {
                     return 'Please enter a valid email address';
+                  }
+                  if (removeEmojis(value) != value) {
+                    return 'Emojis are not allowed';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
               _buildTextField(
-                controller: _addressController,
-                label: 'Address (optional)',
-                maxLines: 2,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _cityController,
-                label: 'City',
-                hintText: 'e.g., Manama',
-                prefixIcon: Icons.location_city,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _countryController,
-                label: 'Country',
-                hintText: 'e.g., Bahrain',
-                prefixIcon: Icons.flag,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
                 controller: _vatNumberController,
                 label: 'VAT Number',
                 hintText: 'e.g., VAT123456789',
-                prefixIcon: Icons.numbers,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter VAT number';
+                  }
+                  if (value.length != 14) {
+                    return 'VAT number must be exactly 14 digits';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _maximumCreditController,
                 label: 'Maximum Credit (BHD)',
                 hintText: '0.000',
-                prefixIcon: Icons.credit_card,
                 keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (double.tryParse(value) == null || double.parse(value) < 0) {
-                      return 'Please enter a valid maximum credit amount';
-                    }
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter maximum credit';
                   }
                   return null;
                 },
@@ -1185,13 +1203,11 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
                 controller: _creditLimitController,
                 label: 'Current Credit (BHD)',
                 hintText: '0.000',
-                prefixIcon: Icons.account_balance_wallet,
                 keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (double.tryParse(value) == null || double.parse(value) < 0) {
-                      return 'Please enter a valid current credit amount';
-                    }
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter current credit';
                   }
                   return null;
                 },
@@ -1202,6 +1218,12 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
                 label: 'Notes (optional)',
                 hintText: 'Additional information about this vendor',
                 maxLines: 3,
+                validator: (value) {
+                  if (removeEmojis(value ?? '') != value) {
+                    return 'Emojis are not allowed';
+                  }
+                  return null;
+                },
               ),
             ],
           ),
@@ -1239,6 +1261,7 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
     TextInputType? keyboardType,
     int maxLines = 1,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters, // Added inputFormatters parameter
   }) {
     return TextFormField(
       controller: controller,
@@ -1251,8 +1274,17 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      inputFormatters: inputFormatters, // Apply inputFormatters
     );
   }
+}
+
+// Utility function to remove emojis from a string
+String removeEmojis(String input) {
+  return input.replaceAll(
+    RegExp(r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]', unicode: true),
+    ''
+  );
 }
 
 // Inline editable field widget for real-time editing
