@@ -593,6 +593,11 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                                   controller: _emailController,
                                   style: const TextStyle(fontSize: 14),
                                   keyboardType: TextInputType.emailAddress,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Email Address',
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  ),
                                   validator: (value) {
                                     if (value == null || value.trim().isEmpty) {
                                       return 'Please enter email address';
@@ -1255,7 +1260,7 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
 
   Widget _buildTextField({
     required TextEditingController controller,
-    required String label,
+    required String label, // Use label as hint text
     String? hintText,
     IconData? prefixIcon,
     TextInputType? keyboardType,
@@ -1266,9 +1271,8 @@ class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
-        labelText: label,
+        hintText: label, // Display label inside the field
         border: const OutlineInputBorder(),
-        hintText: hintText,
         prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
       ),
       keyboardType: keyboardType,
