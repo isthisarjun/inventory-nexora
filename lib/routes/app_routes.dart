@@ -17,6 +17,7 @@ import 'package:tailor_v3/screens/purchase/purchase_items_screen.dart';
 import 'package:tailor_v3/screens/accounts/accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/supplier_accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/all_accounts_screen.dart';
+import 'package:tailor_v3/screens/accounts/bank_accounts_screen.dart';
 
 import 'package:tailor_v3/screens/transactions/transactions_screen.dart';
 import 'package:tailor_v3/screens/expenses/expenses_screen.dart';
@@ -55,6 +56,7 @@ class AppRoutes {
   static const String expenses = '/expenses';
   static const String supplierAccounts = '/accounts/suppliers';
   static const String allAccounts = '/accounts/all';
+  static const String bankAccounts = '/bank-accounts';
   static const String vatFiling = '/vat-filing';
   static const String ledger = '/ledger';
   static const String purchaseLedger = '/ledger/purchase';
@@ -213,6 +215,11 @@ class AppRouter {
           path: AppRoutes.allAccounts,
           name: 'allAccounts',
           builder: (context, state) => const AllAccountsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.bankAccounts,
+          name: 'bankAccounts',
+          builder: (context, state) => const BankAccountsScreen(),
         ),
         GoRoute(
           path: '${AppRoutes.invoiceDetails}/:orderId',

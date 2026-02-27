@@ -21,6 +21,17 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
   String? _error;
   String _searchQuery = '';
 
+  List<Map<String, dynamic>> get _filteredVendors {
+    if (_searchQuery.isEmpty) return _vendors;
+    final q = _searchQuery.toLowerCase();
+    return _vendors.where((v) {
+      final name = (v['vendorName'] ?? '').toString().toLowerCase();
+      final email = (v['email'] ?? '').toString().toLowerCase();
+      final phone = (v['phone'] ?? '').toString().toLowerCase();
+      return name.contains(q) || email.contains(q) || phone.contains(q);
+    }).toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -61,43 +72,29 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
     }
   }
 
-  List<Map<String, dynamic>> get _filteredVendors {
-    if (_searchQuery.isEmpty) {
-      return _vendors;
-    }
-    return _vendors.where((vendor) {
-      final name = vendor['vendorName']?.toString().toLowerCase() ?? '';
-      final email = vendor['email']?.toString().toLowerCase() ?? '';
-      final phone = vendor['phone']?.toString().toLowerCase() ?? '';
-      final query = _searchQuery.toLowerCase();
-      
-      return name.contains(query) || 
-             email.contains(query) || 
-             phone.contains(query);
-    }).toList();
+  void _showEditVendorDialog(Map<String, dynamic> vendor) {
+    showDialog(
+      context: context,
+      builder: (context) => EditVendorDialog(
+        vendor: vendor,
+        excelService: _excelService,
+        onVendorUpdated: _loadVendors,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return RawKeyboardListener(
-      focusNode: _focusNode,
-      autofocus: true,
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          print('🔑 ESC pressed in Vendor Management');
-          NavigationService.handleEscapeKey(context);
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-          tooltip: 'Back to Home',
-        ),
         title: const Text('Vendors'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go('/home'),
+          tooltip: 'Back to Home',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -130,89 +127,135 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
             )
           : Column(
               children: [
-                // Header with summary
+                // Header with gradient summary
                 Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.green[50], // Changed to green accent
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                    ),
+                  ),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          // Total Vendors Card
-                          Expanded(
-                            child: Card(
-                              child: Padding(
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        child: Row(
+                          children: [
+                            // Total Vendors tile
+                            Expanded(
+                              child: Container(
                                 padding: const EdgeInsets.all(16),
-                                child: Column(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                ),
+                                child: Row(
                                   children: [
-                                    Text(
-                                      '${_vendors.where((v) => v['status'] == 'Active').length}',
-                                      style: const TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green, // Changed to green accent
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(Icons.people, color: Colors.white, size: 22),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${_vendors.where((v) => v['status'] == 'Active').length}',
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const Text(
+                                          'Active Vendors',
+                                          style: TextStyle(color: Colors.white70, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            // Total Credit tile
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 22),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          FutureBuilder<double>(
+                                            future: _calculateTotalActiveCredit(),
+                                            builder: (context, snapshot) => Text(
+                                              'BHD ${(snapshot.data ?? 0.0).toStringAsFixed(2)}',
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const Text(
+                                            'Total Credit',
+                                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const Text('Total Vendors'),
                                   ],
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          
-                          // Active Credit Card
-                          Expanded(
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  children: [
-                                    FutureBuilder<double>(
-                                      future: _calculateTotalActiveCredit(),
-                                      builder: (context, snapshot) {
-                                        return Text(
-                                          'BHD ${(snapshot.data ?? 0.0).toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.red, // Changed to red
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    const Text('Total Credit'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                      
                       // Search Bar
-                      Card(
-                        elevation: 1,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
                         child: Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: TextField(
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                            },
-                            decoration: InputDecoration(
+                            onChanged: (value) => setState(() => _searchQuery = value),
+                            decoration: const InputDecoration(
                               hintText: 'Search vendors by name, email, or phone...',
-                              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                              prefixIcon: Icon(Icons.search, color: Color(0xFF4CAF50)),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             ),
                           ),
                         ),
@@ -264,7 +307,6 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-    ),
     );
   }
 
@@ -284,70 +326,113 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
       print('Error: Vendor name is missing for vendor: $vendor');
     }
 
+    final initials = vendorName.trim().isNotEmpty
+        ? vendorName.trim().split(' ').take(2).map((w) => w[0].toUpperCase()).join()
+        : '?';
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: hasActiveCredit 
-              ? BorderSide(color: Colors.green[200]!, width: 1) // Changed to green accent
-              : BorderSide.none,
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE8F5E9)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.green.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: vendorName.isNotEmpty
-              ? () => _navigateToVendorDashboard(vendorName)
-              : null, // Disable tap if vendorName is invalid
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.green[100], // Changed to green accent
-                  child: Text(
-                    vendorName.substring(0, 1).toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green, // Changed to green accent
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _navigateToVendorDashboard(vendorName),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  // Avatar with initials
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        initials,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        vendorName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
-                      if (hasActiveCredit)
+                  const SizedBox(width: 14),
+                  // Info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          'BHD ${creditAmount.toStringAsFixed(2)}',
+                          vendorName,
                           style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.green, // Changed to green accent
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: Color(0xFF1B5E20),
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        if (hasActiveCredit)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFEBEE),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              'Credit: BHD ${creditAmount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                color: Color(0xFFD32F2F),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          )
+                        else
+                          const Text(
+                            'No outstanding credit',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey,
-                ),
-              ],
+                  // Edit button
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE3F2FD),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.edit_outlined, color: Color(0xFF1976D2), size: 20),
+                      onPressed: () => _showEditVendorDialog(vendor),
+                      tooltip: 'Edit Vendor',
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -415,13 +500,376 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
   }
 }
 
+// ─── EditVendorDialog ─────────────────────────────────────────────────────────
+
+class EditVendorDialog extends StatefulWidget {
+  final Map<String, dynamic> vendor;
+  final ExcelService excelService;
+  final VoidCallback onVendorUpdated;
+
+  const EditVendorDialog({
+    super.key,
+    required this.vendor,
+    required this.excelService,
+    required this.onVendorUpdated,
+  });
+
+  @override
+  State<EditVendorDialog> createState() => _EditVendorDialogState();
+}
+
+class _EditVendorDialogState extends State<EditVendorDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _contactController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _addressController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _countryController;
+  late final TextEditingController _vatNumberController;
+  late final TextEditingController _creditLimitController;
+  late final TextEditingController _notesController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.vendor['vendorName'] ?? '');
+    _contactController = TextEditingController(text: widget.vendor['phone'] ?? '');
+    _emailController = TextEditingController(text: widget.vendor['email'] ?? '');
+    _addressController = TextEditingController(text: widget.vendor['address'] ?? '');
+    _cityController = TextEditingController(text: widget.vendor['city'] ?? '');
+    _countryController = TextEditingController(text: widget.vendor['country'] ?? '');
+    _vatNumberController = TextEditingController(text: widget.vendor['vatNumber'] ?? '');
+    _creditLimitController = TextEditingController(
+      text: widget.vendor['currentCredit']?.toString() ?? '0',
+    );
+    _notesController = TextEditingController(text: widget.vendor['notes'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _contactController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _countryController.dispose();
+    _vatNumberController.dispose();
+    _creditLimitController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      final updatedVendor = {
+        'vendorId': widget.vendor['vendorId'],
+        'vendorName': _nameController.text.trim(),
+        'phone': _contactController.text.trim(),
+        'email': _emailController.text.trim(),
+        'address': _addressController.text.trim(),
+        'city': _cityController.text.trim(),
+        'country': _countryController.text.trim(),
+        'vatNumber': _vatNumberController.text.trim(),
+        'maximumCredit': widget.vendor['maximumCredit'] ?? 0.0,
+        'currentCredit': double.tryParse(_creditLimitController.text) ?? 0.0,
+        'notes': _notesController.text.trim(),
+        'status': widget.vendor['status'] ?? 'Active',
+        'dateAdded': widget.vendor['dateAdded'] ?? DateTime.now().toIso8601String(),
+        'totalPurchases': widget.vendor['totalPurchases'] ?? 0.0,
+        'lastPurchaseDate': widget.vendor['lastPurchaseDate'] ?? '',
+      };
+      final success = await widget.excelService.updateVendorInExcel(updatedVendor);
+      if (!mounted) return;
+      if (success) {
+        widget.onVendorUpdated();
+        Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to update vendor.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F8E9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: const Color(0xFF4CAF50), size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE8F5E9)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withOpacity(0.06),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(children: children),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildFormField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: const Color(0xFF4CAF50), size: 20),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+          ),
+          filled: true,
+          fillColor: const Color(0xFFFAFAFA),
+          labelStyle: const TextStyle(color: Color(0xFF616161), fontSize: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 10,
+      child: Container(
+        width: 520,
+        constraints: const BoxConstraints(maxHeight: 680),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color(0xFFF8FFF8)],
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Gradient Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.edit, color: Colors.white, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Edit Vendor',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          widget.vendor['vendorName'] ?? '',
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            // Form Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildSection('Basic Information', Icons.business, [
+                        _buildFormField(_nameController, 'Vendor Name', Icons.store,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Name is required'
+                                : null),
+                        _buildFormField(_contactController, 'Phone', Icons.phone,
+                            keyboardType: TextInputType.phone),
+                        _buildFormField(_emailController, 'Email', Icons.email,
+                            keyboardType: TextInputType.emailAddress),
+                        _buildFormField(_vatNumberController, 'VAT Number', Icons.receipt_long),
+                      ]),
+                      _buildSection('Location', Icons.location_on, [
+                        _buildFormField(_addressController, 'Address', Icons.map_outlined),
+                        _buildFormField(_cityController, 'City', Icons.location_city),
+                        _buildFormField(_countryController, 'Country', Icons.flag_outlined),
+                      ]),
+                      _buildSection('Financial', Icons.account_balance_wallet, [
+                        _buildFormField(_creditLimitController, 'Credit Limit', Icons.credit_card,
+                            keyboardType: TextInputType.number),
+                        _buildFormField(_notesController, 'Notes', Icons.note_outlined),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            // Action Buttons
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(color: Color(0xFF4CAF50)),
+                      ),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Color(0xFF4CAF50))),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.save, size: 18),
+                                SizedBox(width: 8),
+                                Text('Save Changes',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AddVendorDialog ──────────────────────────────────────────────────────────
+
 class AddVendorDialog extends StatefulWidget {
-  final Map<String, dynamic>? vendor;
   final Function(Map<String, dynamic>) onVendorAdded;
 
   const AddVendorDialog({
     super.key,
-    this.vendor,
     required this.onVendorAdded,
   });
 
@@ -440,27 +888,8 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
   final _vatNumberController = TextEditingController();
   final _maximumCreditController = TextEditingController(text: '0');
   final _creditLimitController = TextEditingController(text: '0');
-  final _specialtiesController = TextEditingController();
   final _notesController = TextEditingController();
   bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.vendor != null) {
-      _nameController.text = widget.vendor!['vendorName'] ?? '';
-      _contactController.text = widget.vendor!['phone'] ?? '';
-      _emailController.text = widget.vendor!['email'] ?? '';
-      _addressController.text = widget.vendor!['address'] ?? '';
-      _cityController.text = widget.vendor!['city'] ?? '';
-      _countryController.text = widget.vendor!['country'] ?? '';
-      _vatNumberController.text = widget.vendor!['vatNumber'] ?? '';
-      _maximumCreditController.text = widget.vendor!['maximumCredit']?.toString() ?? '0';
-      _creditLimitController.text = widget.vendor!['currentCredit']?.toString() ?? '0';
-      _specialtiesController.text = ''; // Not used in Excel schema
-      _notesController.text = widget.vendor!['notes'] ?? '';
-    }
-  }
 
   @override
   void dispose() {
@@ -473,363 +902,304 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
     _vatNumberController.dispose();
     _maximumCreditController.dispose();
     _creditLimitController.dispose();
-    _specialtiesController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  String _generateVendorId(String name) {
+    final cleanName = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
+    return 'vendor_${cleanName}_$timestamp';
+  }
+
+  void _saveVendor() async {
+    if (_isSaving || !_formKey.currentState!.validate()) return;
+    setState(() => _isSaving = true);
+    try {
+      final vendor = {
+        'vendorId': _generateVendorId(_nameController.text.trim()),
+        'vendorName': _nameController.text.trim(),
+        'phone': _contactController.text.trim(),
+        'email': _emailController.text.trim(),
+        'address': _addressController.text.trim(),
+        'city': _cityController.text.trim(),
+        'country': _countryController.text.trim(),
+        'vatNumber': _vatNumberController.text.trim(),
+        'maximumCredit': double.tryParse(_maximumCreditController.text) ?? 0.0,
+        'currentCredit': double.tryParse(_creditLimitController.text) ?? 0.0,
+        'notes': _notesController.text.trim(),
+        'status': 'Active',
+        'dateAdded': DateTime.now().toIso8601String(),
+        'totalPurchases': 0.0,
+        'lastPurchaseDate': '',
+      };
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      widget.onVendorAdded(vendor);
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Widget _buildSection(String title, IconData icon, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F8E9),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: const Color(0xFF4CAF50), size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2E7D32),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE8F5E9)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withOpacity(0.06),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(children: children),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildFormField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        validator: validator,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Icon(icon, color: const Color(0xFF4CAF50), size: 20),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE57373)),
+          ),
+          filled: true,
+          fillColor: const Color(0xFFFAFAFA),
+          labelStyle: const TextStyle(color: Color(0xFF616161), fontSize: 14),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.vendor != null;
-    
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      elevation: 10,
       child: Container(
-        width: 800,
-        height: 600,
+        width: 520,
+        constraints: const BoxConstraints(maxHeight: 700),
         decoration: BoxDecoration(
-          color: Colors.green[50],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.green[300]!, width: 2),
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Colors.white, Color(0xFFF8FFF8)],
+          ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
+            // Gradient Header
             Container(
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.green[600],
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(6),
-                  topRight: Radius.circular(6),
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF4CAF50), Color(0xFF66BB6A)],
                 ),
               ),
               child: Row(
                 children: [
-                  const SizedBox(width: 20),
-                  Icon(
-                    isEditing ? Icons.edit : Icons.person_add,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    isEditing ? 'Edit Vendor' : 'Add New Vendor',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: const Icon(Icons.person_add, color: Colors.white, size: 24),
                   ),
-                ],
-              ),
-            ),
-            
-            // Form Content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
+                  const SizedBox(width: 16),
+                  const Expanded(
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Row 1: Vendor Name, Contact Number, Email
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _nameController,
-                                  style: const TextStyle(fontSize: 14),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Vendor Name *',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter vendor name';
-                                    }
-                                    if (removeEmojis(value) != value) {
-                                      return 'Emojis are not allowed';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _contactController,
-                                  style: const TextStyle(fontSize: 14),
-                                  keyboardType: TextInputType.phone,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: const InputDecoration(
-                                    labelText: 'Contact Number *',
-                                    border: OutlineInputBorder(),
-                                    hintText: '+973 1234 5678',
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter contact number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _emailController,
-                                  style: const TextStyle(fontSize: 14),
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Email Address',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter email address';
-                                    }
-                                    if (!value.contains('@') || !value.contains('.')) {
-                                      return 'Please enter a valid email address';
-                                    }
-                                    if (removeEmojis(value) != value) {
-                                      return 'Emojis are not allowed';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Row 2: Address (full width)
-                        SizedBox(
-                          height: 60,
-                          child: TextFormField(
-                            controller: _addressController,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: const InputDecoration(
-                              labelText: 'Address (optional)',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            maxLines: 1,
+                        Text(
+                          'Add New Vendor',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Row 3: City, Country, VAT Number
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _cityController,
-                                  style: const TextStyle(fontSize: 14),
-                                  decoration: const InputDecoration(
-                                    labelText: 'City',
-                                    border: OutlineInputBorder(),
-                                    hintText: 'e.g., Manama',
-                                    prefixIcon: Icon(Icons.location_city, size: 20),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _countryController,
-                                  style: const TextStyle(fontSize: 14),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Country',
-                                    border: OutlineInputBorder(),
-                                    hintText: 'e.g., Bahrain',
-                                    prefixIcon: Icon(Icons.flag, size: 20),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _vatNumberController,
-                                  style: const TextStyle(fontSize: 14),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: const InputDecoration(
-                                    labelText: 'VAT Number',
-                                    border: OutlineInputBorder(),
-                                    hintText: 'e.g., VAT123456789',
-                                    prefixIcon: Icon(Icons.numbers, size: 20),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter VAT number';
-                                    }
-                                    if (value.length != 14) {
-                                      return 'VAT number must be exactly 14 digits';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Row 4: Maximum Credit, Current Credit, empty slot
-                        Row(
-                          children: [
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _maximumCreditController,
-                                  style: const TextStyle(fontSize: 14),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: const InputDecoration(
-                                    labelText: 'Maximum Credit (BHD)',
-                                    border: OutlineInputBorder(),
-                                    hintText: '0.000',
-                                    prefixIcon: Icon(Icons.credit_card, size: 20),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter maximum credit';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: SizedBox(
-                                height: 60,
-                                child: TextFormField(
-                                  controller: _creditLimitController,
-                                  style: const TextStyle(fontSize: 14),
-                                  keyboardType: TextInputType.number,
-                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  decoration: const InputDecoration(
-                                    labelText: 'Current Credit (BHD)',
-                                    border: OutlineInputBorder(),
-                                    hintText: '0.000',
-                                    prefixIcon: Icon(Icons.account_balance_wallet, size: 20),
-                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Please enter current credit';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(child: SizedBox()), // Empty space for 3-column layout
-                          ],
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Row 5: Specialties (full width)
-                        SizedBox(
-                          height: 60,
-                          child: TextFormField(
-                            controller: _specialtiesController,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: const InputDecoration(
-                              labelText: 'Specialties (comma separated)',
-                              border: OutlineInputBorder(),
-                              hintText: 'Cotton, Silk, Linen',
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            maxLines: 1,
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Row 6: Notes (full width)
-                        SizedBox(
-                          height: 60,
-                          child: TextFormField(
-                            controller: _notesController,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: const InputDecoration(
-                              labelText: 'Notes (optional)',
-                              border: OutlineInputBorder(),
-                              hintText: 'Additional information about this vendor',
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            maxLines: 1,
-                          ),
+                        Text(
+                          'Fill in the vendor details below',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            // Form Content
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildSection('Basic Information', Icons.business, [
+                        _buildFormField(_nameController, 'Vendor Name *', Icons.store,
+                            validator: (v) => (v == null || v.trim().isEmpty)
+                                ? 'Name is required'
+                                : null),
+                        _buildFormField(_contactController, 'Phone', Icons.phone,
+                            keyboardType: TextInputType.phone),
+                        _buildFormField(_emailController, 'Email', Icons.email,
+                            keyboardType: TextInputType.emailAddress),
+                        _buildFormField(_vatNumberController, 'VAT Number', Icons.receipt_long),
+                      ]),
+                      _buildSection('Location', Icons.location_on, [
+                        _buildFormField(_addressController, 'Address', Icons.map_outlined),
+                        _buildFormField(_cityController, 'City', Icons.location_city),
+                        _buildFormField(_countryController, 'Country', Icons.flag_outlined),
+                      ]),
+                      _buildSection('Financial', Icons.account_balance_wallet, [
+                        _buildFormField(_maximumCreditController, 'Maximum Credit',
+                            Icons.credit_score,
+                            keyboardType: TextInputType.number),
+                        _buildFormField(_creditLimitController, 'Current Credit',
+                            Icons.credit_card,
+                            keyboardType: TextInputType.number),
+                        _buildFormField(_notesController, 'Notes', Icons.note_outlined),
+                      ]),
+                    ],
+                  ),
                 ),
               ),
             ),
-            
             // Action Buttons
             Container(
               padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAFAFA),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(color: Color(0xFF4CAF50)),
+                      ),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Color(0xFF4CAF50))),
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : _saveVendor,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isEditing ? Colors.orange : Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _saveVendor,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF4CAF50),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.person_add, size: 18),
+                                SizedBox(width: 8),
+                                Text('Add Vendor',
+                                    style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
                             ),
-                          )
-                        : Text(isEditing ? 'Update Vendor' : 'Add Vendor'),
+                    ),
                   ),
                 ],
               ),
@@ -839,565 +1209,116 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
       ),
     );
   }
-
-  void _saveVendor() async {
-    if (_isSaving) return;
-    
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isSaving = true;
-      });
-      
-      try {
-        final vendor = {
-          'vendorId': widget.vendor?['vendorId'] ?? _generateVendorId(_nameController.text.trim()),
-          'vendorName': _nameController.text.trim(),
-          'phone': _contactController.text.trim(),
-          'email': _emailController.text.trim(),
-          'address': _addressController.text.trim(),
-          'city': _cityController.text.trim(),
-          'country': _countryController.text.trim(),
-          'vatNumber': _vatNumberController.text.trim(),
-          'maximumCredit': double.tryParse(_maximumCreditController.text) ?? 0.0,
-          'currentCredit': double.tryParse(_creditLimitController.text) ?? 0.0,
-          'notes': _notesController.text.trim(),
-          'status': 'Active',
-          'dateAdded': widget.vendor?['dateAdded']?.toString() ?? DateTime.now().toIso8601String(),
-          'totalPurchases': 0.0,
-          'lastPurchaseDate': '',
-        };
-
-        Navigator.of(context).pop();
-        widget.onVendorAdded(vendor);
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isSaving = false;
-          });
-        }
-      }
-    }
-  }
-
-  String _generateVendorId(String name) {
-    final cleanName = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
-    final timestamp = DateTime.now().millisecondsSinceEpoch.toString().substring(8);
-    return 'vendor_${cleanName}_$timestamp';
-  }
 }
 
-// Real-time vendor edit dialog with auto-save functionality
-class RealTimeVendorEditDialog extends StatefulWidget {
-  final Map<String, dynamic> vendor;
-  final ExcelService excelService;
-  final VoidCallback onVendorUpdated;
+// ─── InlineEditableField ──────────────────────────────────────────────────────
 
-  const RealTimeVendorEditDialog({
-    super.key,
-    required this.vendor,
-    required this.excelService,
-    required this.onVendorUpdated,
-  });
+class InlineEditableField extends StatefulWidget {
+    final String initialValue;
+    final TextStyle? style;
+    final Function(String) onSave;
+    final TextInputType? keyboardType;
+    final int maxLines;
 
-  @override
-  State<RealTimeVendorEditDialog> createState() => _RealTimeVendorEditDialogState();
-}
-
-class _RealTimeVendorEditDialogState extends State<RealTimeVendorEditDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  late final TextEditingController _contactController;
-  late final TextEditingController _emailController;
-  late final TextEditingController _addressController;
-  late final TextEditingController _cityController;
-  late final TextEditingController _countryController;
-  late final TextEditingController _vatNumberController;
-  late final TextEditingController _maximumCreditController;
-  late final TextEditingController _creditLimitController;
-  late final TextEditingController _notesController;
-
-  Timer? _debounceTimer;
-  bool _isSaving = false;
-  String _lastSavedState = '';
-  
-  @override
-  void initState() {
-    super.initState();
-    
-    // Initialize controllers with vendor data
-    _nameController = TextEditingController(text: widget.vendor['vendorName'] ?? '');
-    _contactController = TextEditingController(text: widget.vendor['phone'] ?? '');
-    _emailController = TextEditingController(text: widget.vendor['email'] ?? '');
-    _addressController = TextEditingController(text: widget.vendor['address'] ?? '');
-    _cityController = TextEditingController(text: widget.vendor['city'] ?? '');
-    _countryController = TextEditingController(text: widget.vendor['country'] ?? '');
-    _vatNumberController = TextEditingController(text: widget.vendor['vatNumber'] ?? '');
-    _maximumCreditController = TextEditingController(text: widget.vendor['maximumCredit']?.toString() ?? '0');
-    _creditLimitController = TextEditingController(text: widget.vendor['currentCredit']?.toString() ?? '0');
-    _notesController = TextEditingController(text: widget.vendor['notes'] ?? '');
-    
-    // Store initial state
-    _lastSavedState = _getCurrentState();
-    
-    // Add listeners for real-time updates
-    _nameController.addListener(_onFieldChanged);
-    _contactController.addListener(_onFieldChanged);
-    _emailController.addListener(_onFieldChanged);
-    _addressController.addListener(_onFieldChanged);
-    _cityController.addListener(_onFieldChanged);
-    _countryController.addListener(_onFieldChanged);
-    _vatNumberController.addListener(_onFieldChanged);
-    _maximumCreditController.addListener(_onFieldChanged);
-    _creditLimitController.addListener(_onFieldChanged);
-    _notesController.addListener(_onFieldChanged);
-  }
-
-  @override
-  void dispose() {
-    _debounceTimer?.cancel();
-    _nameController.dispose();
-    _contactController.dispose();
-    _emailController.dispose();
-    _addressController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
-    _vatNumberController.dispose();
-    _maximumCreditController.dispose();
-    _creditLimitController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  String _getCurrentState() {
-    return '${_nameController.text}|${_contactController.text}|${_emailController.text}|'
-           '${_addressController.text}|${_cityController.text}|${_countryController.text}|'
-           '${_vatNumberController.text}|${_maximumCreditController.text}|'
-           '${_creditLimitController.text}|${_notesController.text}';
-  }
-
-  void _onFieldChanged() {
-    final currentState = _getCurrentState();
-    if (currentState != _lastSavedState) {
-      // Cancel previous timer
-      _debounceTimer?.cancel();
-      
-      // Start new timer (debounce for 1 second)
-      _debounceTimer = Timer(const Duration(seconds: 1), () {
-        _autoSave();
-      });
-    }
-  }
-
-  Future<void> _autoSave() async {
-    if (_isSaving) return;
-    
-    setState(() {
-      _isSaving = true;
+    const InlineEditableField({
+      super.key,
+      required this.initialValue,
+      this.style,
+      required this.onSave,
+      this.keyboardType,
+      this.maxLines = 1,
     });
 
-    try {
-      final updatedVendor = _createVendorObject();
-      final success = await widget.excelService.updateVendorInExcel(updatedVendor);
-      
-      if (success) {
-        _lastSavedState = _getCurrentState();
-        widget.onVendorUpdated();
-        
-        // Show brief success indicator
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
+    @override
+    State<InlineEditableField> createState() => _InlineEditableFieldState();
+  }
+
+  class _InlineEditableFieldState extends State<InlineEditableField> {
+    late TextEditingController _controller;
+    bool _isEditing = false;
+    Timer? _debounceTimer;
+
+    @override
+    void initState() {
+      super.initState();
+      _controller = TextEditingController(text: widget.initialValue);
+      _controller.addListener(_onTextChanged);
+    }
+
+    @override
+    void dispose() {
+      _debounceTimer?.cancel();
+      _controller.dispose();
+      super.dispose();
+    }
+
+    void _onTextChanged() {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(milliseconds: 800), () {
+        if (_controller.text.trim() != widget.initialValue.trim()) {
+          widget.onSave(_controller.text.trim());
+        }
+      });
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return GestureDetector(
+        onTap: () {
+          setState(() {
+            _isEditing = true;
+          });
+        },
+        child: _isEditing
+            ? TextField(
+                controller: _controller,
+                style: widget.style,
+                keyboardType: widget.keyboardType,
+                maxLines: widget.maxLines,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  isDense: true,
+                ),
+                onSubmitted: (value) {
+                  setState(() {
+                    _isEditing = false;
+                  });
+                  if (value.trim() != widget.initialValue.trim()) {
+                    widget.onSave(value.trim());
+                  }
+                },
+                onTapOutside: (event) {
+                  setState(() {
+                    _isEditing = false;
+                  });
+                  if (_controller.text.trim() != widget.initialValue.trim()) {
+                    widget.onSave(_controller.text.trim());
+                  }
+                },
+              )
+            : Row(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.check_circle, color: Colors.white, size: 18),
-                  SizedBox(width: 8),
-                  Text('Auto-saved'),
+                children: [
+                  Flexible(
+                    child: Text(
+                      _controller.text.isEmpty ? 'Tap to edit' : _controller.text,
+                      style: widget.style?.copyWith(
+                        color: _controller.text.isEmpty ? Colors.grey : widget.style?.color,
+                      ),
+                      maxLines: widget.maxLines,
+                      overflow: widget.maxLines == 1 ? TextOverflow.ellipsis : TextOverflow.visible,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.edit,
+                    size: 14,
+                    color: Colors.grey[400],
+                  ),
                 ],
               ),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 1),
-              behavior: SnackBarBehavior.floating,
-              margin: const EdgeInsets.only(bottom: 500, left: 20, right: 20),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.error, color: Colors.white, size: 18),
-                SizedBox(width: 8),
-                Text('Auto-save failed'),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.only(bottom: 500, left: 20, right: 20),
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
-    }
-  }
-
-  Map<String, dynamic> _createVendorObject() {
-    return {
-      'vendorId': widget.vendor['vendorId'],
-      'vendorName': _nameController.text.trim(),
-      'phone': _contactController.text.trim(),
-      'email': _emailController.text.trim(),
-      'address': _addressController.text.trim(),
-      'city': _cityController.text.trim(),
-      'country': _countryController.text.trim(),
-      'vatNumber': _vatNumberController.text.trim(),
-      'maximumCredit': double.tryParse(_maximumCreditController.text) ?? 0.0,
-      'currentCredit': double.tryParse(_creditLimitController.text) ?? 0.0,
-      'notes': _notesController.text.trim(),
-      'status': widget.vendor['status'] ?? 'Active',
-      'dateAdded': widget.vendor['dateAdded']?.toString() ?? DateTime.now().toIso8601String(),
-      'totalPurchases': widget.vendor['totalPurchases'] ?? 0.0,
-      'lastPurchaseDate': widget.vendor['lastPurchaseDate'] ?? '',
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Row(
-        children: [
-          const Text('Edit Vendor'),
-          const Spacer(),
-          if (_isSaving)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'Saving...',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            )
-          else if (_getCurrentState() != _lastSavedState)
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.edit, size: 16, color: Colors.orange),
-                SizedBox(width: 4),
-                Text(
-                  'Modified',
-                  style: TextStyle(fontSize: 12, color: Colors.orange),
-                ),
-              ],
-            )
-          else
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.check_circle, size: 16, color: Colors.green),
-                SizedBox(width: 4),
-                Text(
-                  'Saved',
-                  style: TextStyle(fontSize: 12, color: Colors.green),
-                ),
-              ],
-            ),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildTextField(
-                controller: _nameController,
-                label: 'Vendor Name *',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter vendor name';
-                  }
-                  if (removeEmojis(value) != value) {
-                    return 'Emojis are not allowed';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _contactController,
-                label: 'Contact Number *',
-                hintText: '+973 1234 5678',
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter contact number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _emailController,
-                label: 'Email Address *',
-                hintText: 'vendor@example.com',
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter email address';
-                  }
-                  if (!value.contains('@') || !value.contains('.')) {
-                    return 'Please enter a valid email address';
-                  }
-                  if (removeEmojis(value) != value) {
-                    return 'Emojis are not allowed';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _vatNumberController,
-                label: 'VAT Number',
-                hintText: 'e.g., VAT123456789',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter VAT number';
-                  }
-                  if (value.length != 14) {
-                    return 'VAT number must be exactly 14 digits';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _maximumCreditController,
-                label: 'Maximum Credit (BHD)',
-                hintText: '0.000',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter maximum credit';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _creditLimitController,
-                label: 'Current Credit (BHD)',
-                hintText: '0.000',
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter current credit';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _notesController,
-                label: 'Notes (optional)',
-                hintText: 'Additional information about this vendor',
-                maxLines: 3,
-                validator: (value) {
-                  if (removeEmojis(value ?? '') != value) {
-                    return 'Emojis are not allowed';
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-        ElevatedButton(
-          onPressed: () async {
-            if (_formKey.currentState!.validate()) {
-              // Force save any pending changes
-              _debounceTimer?.cancel();
-              await _autoSave();
-              Navigator.of(context).pop();
-            }
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-            foregroundColor: Colors.white,
-          ),
-          child: const Text('Save & Close'),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label, // Use label as hint text
-    String? hintText,
-    IconData? prefixIcon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    String? Function(String?)? validator,
-    List<TextInputFormatter>? inputFormatters, // Added inputFormatters parameter
-  }) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: label, // Display label inside the field
-        border: const OutlineInputBorder(),
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
-      ),
-      keyboardType: keyboardType,
-      maxLines: maxLines,
-      validator: validator,
-      inputFormatters: inputFormatters, // Apply inputFormatters
-    );
-  }
-}
-
-// Utility function to remove emojis from a string
-String removeEmojis(String input) {
-  return input.replaceAll(
-    RegExp(r'[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]', unicode: true),
-    ''
-  );
-}
-
-// Inline editable field widget for real-time editing
-class InlineEditableField extends StatefulWidget {
-  final String initialValue;
-  final TextStyle? style;
-  final Function(String) onSave;
-  final TextInputType? keyboardType;
-  final int maxLines;
-
-  const InlineEditableField({
-    super.key,
-    required this.initialValue,
-    this.style,
-    required this.onSave,
-    this.keyboardType,
-    this.maxLines = 1,
-  });
-
-  @override
-  State<InlineEditableField> createState() => _InlineEditableFieldState();
-}
-
-class _InlineEditableFieldState extends State<InlineEditableField> {
-  late TextEditingController _controller;
-  bool _isEditing = false;
-  Timer? _debounceTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialValue);
-    _controller.addListener(_onTextChanged);
-  }
-
-  @override
-  void dispose() {
-    _debounceTimer?.cancel();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _onTextChanged() {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 800), () {
-      if (_controller.text.trim() != widget.initialValue.trim()) {
-        widget.onSave(_controller.text.trim());
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _isEditing = true;
-        });
-      },
-      child: _isEditing
-          ? TextField(
-              controller: _controller,
-              style: widget.style,
-              keyboardType: widget.keyboardType,
-              maxLines: widget.maxLines,
-              autofocus: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                isDense: true,
-              ),
-              onSubmitted: (value) {
-                setState(() {
-                  _isEditing = false;
-                });
-                if (value.trim() != widget.initialValue.trim()) {
-                  widget.onSave(value.trim());
-                }
-              },
-              onTapOutside: (event) {
-                setState(() {
-                  _isEditing = false;
-                });
-                if (_controller.text.trim() != widget.initialValue.trim()) {
-                  widget.onSave(_controller.text.trim());
-                }
-              },
-            )
-          : Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Flexible(
-                  child: Text(
-                    _controller.text.isEmpty ? 'Tap to edit' : _controller.text,
-                    style: widget.style?.copyWith(
-                      color: _controller.text.isEmpty ? Colors.grey : widget.style?.color,
-                    ),
-                    maxLines: widget.maxLines,
-                    overflow: widget.maxLines == 1 ? TextOverflow.ellipsis : TextOverflow.visible,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.edit,
-                  size: 14,
-                  color: Colors.grey[400],
-                ),
-              ],
-            ),
     );
   }
 }

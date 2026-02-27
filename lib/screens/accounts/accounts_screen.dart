@@ -215,7 +215,16 @@ class _AccountsScreenState extends State<AccountsScreen> {
               subtitle: '${_accounts.length} total accounts',
               icon: Icons.account_balance,
               color: Colors.green,
-              onTap: () => context.go('/all-accounts'),
+              onTap: () => context.go('/bank-accounts'),
+            ),
+            
+            const SizedBox(height: 12),
+            _buildAccountSection(
+              title: 'VAT Filing',
+              subtitle: 'Manage VAT filing data',
+              icon: Icons.file_present,
+              color: Colors.purpleAccent,
+              onTap: () => context.go('/vat-filing'),
             ),
             
             const SizedBox(height: 32),
@@ -382,7 +391,14 @@ class _AccountsScreenState extends State<AccountsScreen> {
               ],
             ),
             
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
+            _buildAccountSection(
+              title: 'VAT Filing',
+              subtitle: 'Manage VAT filing data',
+              icon: Icons.file_present,
+              color: Colors.purpleAccent,
+              onTap: () => context.go('/vat-filing'),
+            ),
           ],
         ),
       ),
