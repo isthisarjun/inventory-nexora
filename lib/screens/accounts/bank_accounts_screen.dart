@@ -57,40 +57,113 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
 
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(isEditing ? 'Edit Bank Account' : 'Add Bank Account'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildField(bankNameCtrl, 'Bank Name', Icons.account_balance),
-                const SizedBox(height: 12),
-                _buildField(branchCtrl, 'Branch', Icons.location_on),
-                const SizedBox(height: 12),
-                _buildField(accountNumberCtrl, 'Account Number', Icons.credit_card,
-                    required: true),
-                const SizedBox(height: 12),
-                _buildField(ibanCtrl, 'IBAN Number', Icons.numbers),
-                const SizedBox(height: 12),
-                _buildField(mobileCtrl, 'Registered Mobile Number', Icons.phone,
-                    keyboardType: TextInputType.phone),
-              ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: EdgeInsets.zero,
+        contentPadding: const EdgeInsets.all(24),
+        actionsPadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.green[600],
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.account_balance, color: Colors.white, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                isEditing ? 'Edit Bank Account' : 'Add Bank Account',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Row 1: Bank Name | Branch
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildField(
+                            bankNameCtrl, 'Bank Name', Icons.account_balance),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildField(
+                            branchCtrl, 'Branch', Icons.location_on),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Row 2: Account Number | IBAN Number
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _buildField(
+                            accountNumberCtrl, 'Account Number',
+                            Icons.credit_card,
+                            required: true),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildField(
+                            ibanCtrl, 'IBAN Number', Icons.numbers),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Row 3: Mobile (full width)
+                  _buildField(
+                      mobileCtrl, 'Registered Mobile Number', Icons.phone,
+                      keyboardType: TextInputType.phone),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey[600]),
+                        child: const Text('Cancel'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (formKey.currentState!.validate()) {
+                            Navigator.pop(ctx, true);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 10),
+                        ),
+                        child: Text(isEditing ? 'Update' : 'Add Account'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) Navigator.pop(ctx, true);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: Text(isEditing ? 'Update' : 'Add'),
-          ),
-        ],
+        actions: const [],
       ),
     );
 
@@ -134,8 +207,8 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, size: 20),
-        border: const OutlineInputBorder(),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
       validator: required
           ? (v) => (v == null || v.trim().isEmpty) ? '$label is required' : null
@@ -147,15 +220,47 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Bank Account'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: EdgeInsets.zero,
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+        title: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red[600],
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.delete_forever, color: Colors.white, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Delete Bank Account',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+        ),
         content: Text(
             'Delete "${account['bankName']} \u2013 ${account['accountNumber']}"?\n\nLinked transactions will not be deleted.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx, false),
+            style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              foregroundColor: Colors.white,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
             child: const Text('Delete'),
           ),
         ],
