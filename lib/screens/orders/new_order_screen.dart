@@ -394,295 +394,406 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   // Show dialog to add a new inventory item
   Future<void> _showAddNewItemDialog(int orderItemIndex) async {
-    // Controllers for the new item form
-    final nameController = TextEditingController();
-    final categoryController = TextEditingController();
-    final currentStockController = TextEditingController();
-    final unitCostController = TextEditingController();
-    final sellingPriceController = TextEditingController();
-    
-    // Focus nodes for navigation
-    final nameFocus = FocusNode();
-    final categoryFocus = FocusNode();
+    // ── Required field controllers ──────────────────────────────────────────
+    final nameController        = TextEditingController();
+    final categoryController    = TextEditingController();
+    final unitController        = TextEditingController(text: 'pcs');
+    final currentStockController= TextEditingController();
+    final minStockController    = TextEditingController(text: '5');
+    final maxStockController    = TextEditingController(text: '100');
+    final costPriceController   = TextEditingController();
+    final sellingPriceController= TextEditingController();
+
+    // ── Optional field controllers ─────────────────────────────────────────
+    final descriptionController = TextEditingController();
+    final skuController         = TextEditingController();
+    final barcodeController     = TextEditingController();
+    final supplierController    = TextEditingController();
+    final locationController    = TextEditingController();
+    final notesController       = TextEditingController();
+
+    // ── Status dropdown ────────────────────────────────────────────────────
+    String selectedStatus = 'Active';
+
+    // ── Focus nodes ────────────────────────────────────────────────────────
+    final nameFocus         = FocusNode();
+    final categoryFocus     = FocusNode();
+    final unitFocus         = FocusNode();
     final currentStockFocus = FocusNode();
-    final unitCostFocus = FocusNode();
+    final minStockFocus     = FocusNode();
+    final maxStockFocus     = FocusNode();
+    final costPriceFocus    = FocusNode();
     final sellingPriceFocus = FocusNode();
-    
-    // Form key for validation
+    final descriptionFocus  = FocusNode();
+    final skuFocus          = FocusNode();
+    final barcodeFocus      = FocusNode();
+    final supplierFocus     = FocusNode();
+    final locationFocus     = FocusNode();
+    final notesFocus        = FocusNode();
+
     final formKey = GlobalKey<FormState>();
+
+    // Helper to build a styled TextFormField matching the app's green theme
+    Widget _field({
+      required TextEditingController controller,
+      required FocusNode focusNode,
+      required String label,
+      required IconData icon,
+      FocusNode? nextFocus,
+      bool required = false,
+      bool numeric = false,
+    }) {
+      return SizedBox(
+        height: 60,
+        child: TextFormField(
+          controller: controller,
+          focusNode: focusNode,
+          keyboardType: numeric ? TextInputType.number : TextInputType.text,
+          style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
+          decoration: InputDecoration(
+            labelText: required ? '$label *' : label,
+            prefixIcon: Icon(icon, size: 20, color: Colors.green),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            labelStyle: TextStyle(fontSize: 13, color: Colors.green[600]),
+          ),
+          onFieldSubmitted: (_) {
+            if (nextFocus != null) FocusScope.of(context).requestFocus(nextFocus);
+          },
+          validator: required
+              ? (value) {
+                  if (value == null || value.trim().isEmpty) return 'Required';
+                  if (numeric && double.tryParse(value.trim()) == null) return 'Invalid number';
+                  return null;
+                }
+              : null,
+        ),
+      );
+    }
 
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            constraints: const BoxConstraints(maxWidth: 600, maxHeight: 600),
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[600],
-                      borderRadius: BorderRadius.circular(8),
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Container(
+                width: MediaQuery.of(dialogContext).size.width * 0.92,
+                constraints: const BoxConstraints(maxWidth: 700, maxHeight: 680),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green[300]!, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.green.withOpacity(0.15),
+                      spreadRadius: 3,
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.add_circle, color: Colors.white, size: 24),
-                        SizedBox(width: 12),
-                        Text(
-                          'Add New Inventory Item',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Green gradient header ────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.green[600]!, Colors.green[700]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Form fields
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                      ),
+                      child: Row(
                         children: [
-                          // Row 1: Item Name and Category
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: nameController,
-                                  focusNode: nameFocus,
-                                  decoration: InputDecoration(
-                                    labelText: 'Item Name *',
-                                    prefixIcon: const Icon(Icons.inventory, size: 20),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  onFieldSubmitted: (value) {
-                                    FocusScope.of(context).requestFocus(categoryFocus);
-                                  },
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Item name is required';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: categoryController,
-                                  focusNode: categoryFocus,
-                                  decoration: InputDecoration(
-                                    labelText: 'Category',
-                                    prefixIcon: const Icon(Icons.category, size: 20),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  onFieldSubmitted: (value) {
-                                    FocusScope.of(context).requestFocus(currentStockFocus);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Row 2: Current Stock and Unit Cost
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: currentStockController,
-                                  focusNode: currentStockFocus,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Current Stock *',
-                                    prefixIcon: const Icon(Icons.inventory_2, size: 20),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  onFieldSubmitted: (value) {
-                                    FocusScope.of(context).requestFocus(unitCostFocus);
-                                  },
-                                  validator: (value) {
-                                    if (value == null || value.trim().isEmpty) {
-                                      return 'Stock is required';
-                                    }
-                                    if (double.tryParse(value) == null) {
-                                      return 'Enter valid number';
-                                    }
-                                    return null;
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: unitCostController,
-                                  focusNode: unitCostFocus,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: 'Unit Cost',
-                                    prefixIcon: const Icon(Icons.attach_money, size: 20),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  ),
-                                  onFieldSubmitted: (value) {
-                                    FocusScope.of(context).requestFocus(sellingPriceFocus);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Row 3: Selling Price
-                          TextFormField(
-                            controller: sellingPriceController,
-                            focusNode: sellingPriceFocus,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Selling Price *',
-                              prefixIcon: const Icon(Icons.sell, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          const Icon(Icons.add_circle_outline, color: Colors.white, size: 24),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Add New Inventory Item',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Selling price is required';
-                              }
-                              if (double.tryParse(value) == null) {
-                                return 'Enter valid number';
-                              }
-                              return null;
-                            },
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              '* Required',
+                              style: TextStyle(fontSize: 11, color: Colors.white70),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  // Action buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop(null);
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey[600],
-                        ),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () async {
-                          // Validate form using the form key
-                          if (!formKey.currentState!.validate()) {
-                            return;
-                          }
-                          
-                          try {
-                            // Parse values safely
-                            final currentStock = double.tryParse(currentStockController.text.trim()) ?? 0.0;
-                            final unitCost = double.tryParse(unitCostController.text.trim()) ?? 0.0;
-                            final sellingPrice = double.tryParse(sellingPriceController.text.trim()) ?? 0.0;
-                            
-                            if (currentStock <= 0 || sellingPrice <= 0) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Stock and selling price must be greater than 0'),
-                                  backgroundColor: Colors.red,
+
+                    // ── Scrollable form body ─────────────────────────────
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: Form(
+                          key: formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Section: Basic Info
+                              _sectionLabel('Basic Information'),
+                              const SizedBox(height: 10),
+
+                              // Row 1: Name | Category
+                              Row(children: [
+                                Expanded(child: _field(controller: nameController,     focusNode: nameFocus,     label: 'Name',     icon: Icons.inventory,         nextFocus: categoryFocus,    required: true)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: categoryController, focusNode: categoryFocus, label: 'Category', icon: Icons.category,          nextFocus: unitFocus,        required: true)),
+                              ]),
+                              const SizedBox(height: 12),
+
+                              // Row 2: SKU (opt) | Barcode (opt) | Unit
+                              Row(children: [
+                                Expanded(child: _field(controller: skuController,      focusNode: skuFocus,      label: 'SKU',      icon: Icons.qr_code,           nextFocus: barcodeFocus)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: barcodeController,  focusNode: barcodeFocus,  label: 'Barcode',  icon: Icons.barcode_reader,    nextFocus: unitFocus)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: unitController,     focusNode: unitFocus,     label: 'Unit',     icon: Icons.straighten,        nextFocus: currentStockFocus, required: true)),
+                              ]),
+                              const SizedBox(height: 12),
+
+                              // Row 3: Description (opt) – full width
+                              SizedBox(
+                                height: 60,
+                                child: TextFormField(
+                                  controller: descriptionController,
+                                  focusNode: descriptionFocus,
+                                  style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
+                                  decoration: InputDecoration(
+                                    labelText: 'Description (optional)',
+                                    prefixIcon: const Icon(Icons.description, size: 20, color: Colors.green),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    labelStyle: TextStyle(fontSize: 13, color: Colors.green[600]),
+                                  ),
+                                  onFieldSubmitted: (_) => FocusScope.of(dialogContext).requestFocus(currentStockFocus),
                                 ),
-                              );
-                              return;
-                            }
-                            
-                            // Create item data
-                            final itemData = {
-                              'name': nameController.text.trim(),
-                              'category': categoryController.text.trim(),
-                              'currentStock': currentStock,
-                              'unitCost': unitCost,
-                              'sellingPrice': sellingPrice,
-                            };
-                            
-                            Navigator.of(context).pop(itemData);
-                          } catch (e) {
-                            debugPrint('Error creating item data: $e');
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error creating item: ${e.toString()}'),
-                                backgroundColor: Colors.red,
                               ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          foregroundColor: Colors.white,
+
+                              const SizedBox(height: 18),
+                              // Section: Stock
+                              _sectionLabel('Stock Details'),
+                              const SizedBox(height: 10),
+
+                              // Row 4: Current Stock | Min Stock | Max Stock
+                              Row(children: [
+                                Expanded(child: _field(controller: currentStockController, focusNode: currentStockFocus, label: 'Current Stock', icon: Icons.inventory_2,       nextFocus: minStockFocus,    required: true, numeric: true)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: minStockController,     focusNode: minStockFocus,     label: 'Min Stock',    icon: Icons.arrow_downward,    nextFocus: maxStockFocus,    required: true, numeric: true)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: maxStockController,     focusNode: maxStockFocus,     label: 'Max Stock',    icon: Icons.arrow_upward,      nextFocus: costPriceFocus,   required: true, numeric: true)),
+                              ]),
+
+                              const SizedBox(height: 18),
+                              // Section: Pricing
+                              _sectionLabel('Pricing'),
+                              const SizedBox(height: 10),
+
+                              // Row 5: Cost Price | Selling Price
+                              Row(children: [
+                                Expanded(child: _field(controller: costPriceController,    focusNode: costPriceFocus,    label: 'Cost Price',   icon: Icons.attach_money,      nextFocus: sellingPriceFocus, required: true, numeric: true)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: sellingPriceController, focusNode: sellingPriceFocus, label: 'Selling Price', icon: Icons.sell,             nextFocus: supplierFocus,    required: true, numeric: true)),
+                              ]),
+
+                              const SizedBox(height: 18),
+                              // Section: Additional Details
+                              _sectionLabel('Additional Details (Optional)'),
+                              const SizedBox(height: 10),
+
+                              // Row 6: Supplier (opt) | Location (opt) | Status
+                              Row(children: [
+                                Expanded(child: _field(controller: supplierController, focusNode: supplierFocus, label: 'Supplier', icon: Icons.business,      nextFocus: locationFocus)),
+                                const SizedBox(width: 12),
+                                Expanded(child: _field(controller: locationController, focusNode: locationFocus, label: 'Location', icon: Icons.location_on,   nextFocus: notesFocus)),
+                                const SizedBox(width: 12),
+                                // Status dropdown
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 60,
+                                    child: DropdownButtonFormField<String>(
+                                      value: selectedStatus,
+                                      style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        labelText: 'Status *',
+                                        prefixIcon: const Icon(Icons.toggle_on, size: 20, color: Colors.green),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        labelStyle: TextStyle(fontSize: 13, color: Colors.green[600]),
+                                      ),
+                                      items: const [
+                                        DropdownMenuItem(value: 'Active',       child: Text('Active')),
+                                        DropdownMenuItem(value: 'Inactive',     child: Text('Inactive')),
+                                        DropdownMenuItem(value: 'Discontinued', child: Text('Discontinued')),
+                                      ],
+                                      onChanged: (val) => setDialogState(() => selectedStatus = val ?? 'Active'),
+                                    ),
+                                  ),
+                                ),
+                              ]),
+                              const SizedBox(height: 12),
+
+                              // Row 7: Notes (opt) – full width
+                              SizedBox(
+                                height: 60,
+                                child: TextFormField(
+                                  controller: notesController,
+                                  focusNode: notesFocus,
+                                  style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
+                                  decoration: InputDecoration(
+                                    labelText: 'Notes (optional)',
+                                    prefixIcon: const Icon(Icons.notes, size: 20, color: Colors.green),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    labelStyle: TextStyle(fontSize: 13, color: Colors.green[600]),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        child: const Text('Add Item'),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+
+                    // ── Action buttons ───────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        border: Border(top: BorderSide(color: Colors.green[100]!)),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(14)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => Navigator.of(dialogContext).pop(null),
+                            icon: const Icon(Icons.cancel, size: 18),
+                            label: const Text('Cancel'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey[700],
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              if (!formKey.currentState!.validate()) return;
+
+                              final itemData = {
+                                'name':         nameController.text.trim(),
+                                'category':     categoryController.text.trim(),
+                                'description':  descriptionController.text.trim(),
+                                'sku':          skuController.text.trim(),
+                                'barcode':      barcodeController.text.trim(),
+                                'unit':         unitController.text.trim(),
+                                'currentStock': double.tryParse(currentStockController.text.trim()) ?? 0.0,
+                                'minimumStock': double.tryParse(minStockController.text.trim()) ?? 0.0,
+                                'maximumStock': double.tryParse(maxStockController.text.trim()) ?? 0.0,
+                                'unitCost':     double.tryParse(costPriceController.text.trim()) ?? 0.0,
+                                'sellingPrice': double.tryParse(sellingPriceController.text.trim()) ?? 0.0,
+                                'supplier':     supplierController.text.trim(),
+                                'location':     locationController.text.trim(),
+                                'status':       selectedStatus,
+                                'notes':        notesController.text.trim(),
+                              };
+                              Navigator.of(dialogContext).pop(itemData);
+                            },
+                            icon: const Icon(Icons.save, size: 18),
+                            label: const Text('Save Item'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
 
-    // Dispose controllers and focus nodes
-    nameController.dispose();
-    categoryController.dispose();
-    currentStockController.dispose();
-    unitCostController.dispose();
-    sellingPriceController.dispose();
-    nameFocus.dispose();
-    categoryFocus.dispose();
-    currentStockFocus.dispose();
-    unitCostFocus.dispose();
-    sellingPriceFocus.dispose();
+    // ── Dispose all controllers and focus nodes ──────────────────────────
+    for (final c in [nameController, categoryController, unitController, currentStockController, minStockController, maxStockController, costPriceController, sellingPriceController, descriptionController, skuController, barcodeController, supplierController, locationController, notesController]) {
+      c.dispose();
+    }
+    for (final f in [nameFocus, categoryFocus, unitFocus, currentStockFocus, minStockFocus, maxStockFocus, costPriceFocus, sellingPriceFocus, descriptionFocus, skuFocus, barcodeFocus, supplierFocus, locationFocus, notesFocus]) {
+      f.dispose();
+    }
 
     if (result != null) {
-      // User filled the form - save the item to inventory
       await _addNewItemToInventory(result, orderItemIndex);
     } else {
-      // User cancelled - reset the dropdown to no selection
       setState(() {
         _orderItems[orderItemIndex].selectedItem = null;
       });
     }
+  }
+
+  /// Small green section label used inside the dialog
+  Widget _sectionLabel(String text) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 16,
+          decoration: BoxDecoration(
+            color: Colors.green[600],
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.green[700],
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
   }
 
   // Add the new item to inventory and then select it in the order
@@ -694,39 +805,56 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       final nextItemId = _generateNextItemId();
       debugPrint('📝 Generated item ID: $nextItemId');
       
+      final now = DateTime.now();
       final fullItemData = {
-        'id': nextItemId,
-        'name': itemData['name']?.toString() ?? '',
-        'category': itemData['category']?.toString() ?? '',
+        'id':           nextItemId,
+        'name':         itemData['name']?.toString() ?? '',
+        'category':     itemData['category']?.toString() ?? '',
+        'description':  itemData['description']?.toString() ?? '',
+        'sku':          itemData['sku']?.toString() ?? '',
+        'barcode':      itemData['barcode']?.toString() ?? '',
+        'unit':         itemData['unit']?.toString().isNotEmpty == true ? itemData['unit'].toString() : 'pcs',
         'currentStock': (itemData['currentStock'] as num?)?.toDouble() ?? 0.0,
-        'unitCost': (itemData['unitCost'] as num?)?.toDouble() ?? 0.0,
+        'minimumStock': (itemData['minimumStock'] as num?)?.toDouble() ?? 0.0,
+        'maximumStock': (itemData['maximumStock'] as num?)?.toDouble() ?? 0.0,
+        'unitCost':     (itemData['unitCost'] as num?)?.toDouble() ?? 0.0,
         'sellingPrice': (itemData['sellingPrice'] as num?)?.toDouble() ?? 0.0,
-        'unit': 'pcs',
-        'minimumStock': 5.0,
-        'maximumStock': 100.0,
-        'status': 'Active',
-        'description': '',
-        'sku': '',
-        'barcode': '',
-        'supplier': '',
-        'location': '',
-        'notes': '',
-        'dateAdded': DateTime.now().toIso8601String().split('T')[0],
-        'lastUpdated': DateTime.now().toIso8601String(),
+        'supplier':     itemData['supplier']?.toString() ?? '',
+        'location':     itemData['location']?.toString() ?? '',
+        'status':       itemData['status']?.toString() ?? 'Active',
+        'notes':        itemData['notes']?.toString() ?? '',
+        'dateAdded':    now.toIso8601String().split('T')[0],
+        'lastUpdated':  now.toIso8601String(),
       };
 
       debugPrint('💾 Saving item to Excel: $fullItemData');
-      final success = await _excelService.saveInventoryItemToExcel(fullItemData);
+
+      // Fix 3: Isolate the Excel save so a transaction sub-call failure
+      // doesn't falsely report the whole operation as failed.
+      bool success = false;
+      try {
+        success = await _excelService.saveInventoryItemToExcel(fullItemData);
+      } catch (writeError) {
+        debugPrint('❌ Excel write error: $writeError');
+        success = false;
+      }
       
       if (success) {
         // Reload inventory items to include the new item
         await _loadInventoryItems();
         
-        // Find and select the newly added item
-        final newItem = _inventoryItems.firstWhere(
-          (item) => item['id'] == nextItemId,
-          orElse: () => fullItemData,
-        );
+        // Fix 2: Safe lookup — if the item isn't found (e.g. stock filter
+        // excluded it) inject fullItemData so the dropdown value is valid.
+        Map<String, dynamic> newItem;
+        final foundIndex = _inventoryItems.indexWhere((i) => i['id'] == nextItemId);
+        if (foundIndex >= 0) {
+          newItem = _inventoryItems[foundIndex];
+        } else {
+          newItem = fullItemData;
+          setState(() {
+            _inventoryItems = [fullItemData, ..._inventoryItems];
+          });
+        }
         
         setState(() {
           _orderItems[orderItemIndex].selectedItem = newItem;
@@ -1628,7 +1756,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                             focusNode: FocusNode(),
                             onKey: (event) => _handleKeyNavigation(event, orderItem.itemDropdownFocus),
                             child: DropdownButtonFormField<Map<String, dynamic>>(
-                            initialValue: orderItem.selectedItem,
+                            // Fix 1: Use reactive `value` instead of `initialValue`
+                            // so the dropdown updates when selectedItem changes via setState.
+                            value: orderItem.selectedItem != null &&
+                                    _inventoryItems.any((i) => i['id'] == orderItem.selectedItem!['id'])
+                                ? _inventoryItems.firstWhere((i) => i['id'] == orderItem.selectedItem!['id'])
+                                : orderItem.selectedItem,
                             focusNode: orderItem.itemDropdownFocus,
                             decoration: const InputDecoration(
                               labelText: 'Select Item *',
