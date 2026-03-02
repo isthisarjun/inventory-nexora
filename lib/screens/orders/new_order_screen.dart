@@ -57,8 +57,24 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   
   // Payment method and status
   String _selectedPaymentMethod = 'Cash';
-  final List<String> _paymentMethods = ['Cash', 'Card', 'Benefit'];
+  final List<String> _paymentMethods = ['Cash', 'Card', 'Benefit', 'Bank Transfer', 'Credit'];
+  List<String> _banks = [];
+  List<Map<String, dynamic>> _bankAccountObjects = []; // Full bank data for account number lookup
+  String? _selectedBank;
   bool _isPaid = true; // Default to paid
+  
+  // Load bank accounts from Excel
+  Future<void> _loadBankAccounts() async {
+    try {
+      final bankAccounts = await _excelService.loadBankAccountsFromExcel();
+      setState(() {
+        _bankAccountObjects = bankAccounts;
+        _banks = bankAccounts.map((account) => account['bankName'].toString()).toList();
+      });
+    } catch (e) {
+      debugPrint('Error loading bank accounts: $e');
+    }
+  }
   
   // Calculated values
   double _subtotal = 0.0;
@@ -84,6 +100,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   @override
   void initState() {
     super.initState();
+    _loadBankAccounts();
     
     // Add listeners to update calculations for each order item
     for (var orderItem in _orderItems) {
@@ -950,7 +967,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Future<void> _showPaymentDialog() async {
     bool tempIsPaid = _isPaid;
     String? tempPaymentMethod = _isPaid ? _selectedPaymentMethod : null;
-    
+    String? tempSelectedBank = _selectedBank;
+
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
@@ -958,219 +976,83 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: const Text(
-                "Create Order",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
-              ),
-              content: SizedBox(
-                width: 400,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Payment status toggle
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: tempIsPaid ? Colors.green[50] : Colors.orange[50],
-                        border: Border.all(
-                          color: tempIsPaid ? Colors.green : Colors.orange,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                tempIsPaid ? Icons.check_circle : Icons.schedule,
-                                color: tempIsPaid ? Colors.green : Colors.orange,
-                                size: 24,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                tempIsPaid ? "PAID ORDER" : "CREDIT ORDER",
-                                style: TextStyle(
-                                  color: tempIsPaid ? Colors.green[700] : Colors.orange[700],
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          
-                          // Toggle Switch
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Credit",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: !tempIsPaid ? FontWeight.bold : FontWeight.normal,
-                                  color: !tempIsPaid ? Colors.orange[700] : Colors.grey,
-                                ),
-                              ),
-                              Switch(
-                                value: tempIsPaid,
-                                activeThumbColor: Colors.green,
-                                activeTrackColor: Colors.green[200],
-                                inactiveThumbColor: Colors.orange,
-                                inactiveTrackColor: Colors.orange[200],
-                                onChanged: (val) {
-                                  setDialogState(() {
-                                    tempIsPaid = val;
-                                    if (!tempIsPaid) {
-                                      tempPaymentMethod = null; // Reset payment if Credit
-                                    } else {
-                                      tempPaymentMethod = _selectedPaymentMethod; // Restore payment method
-                                    }
-                                  });
-                                },
-                              ),
-                              Text(
-                                "Paid",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: tempIsPaid ? FontWeight.bold : FontWeight.normal,
-                                  color: tempIsPaid ? Colors.green[700] : Colors.grey,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+              title: const Text('Payment Details'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SwitchListTile(
+                    title: Text(
+                      tempIsPaid ? 'Paid' : 'Credit',
+                      style: TextStyle(
+                        color: tempIsPaid ? Colors.green[700] : Colors.red[700],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Order Total
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue[200]!),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "Order Total:",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Text(
-                            'BHD ${_finalPrice.toStringAsFixed(3)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ],
-                      ),
+                    value: tempIsPaid,
+                    activeColor: Colors.green,
+                    inactiveThumbColor: Colors.red,
+                    inactiveTrackColor: Colors.red[200],
+                    onChanged: (value) {
+                      setDialogState(() {
+                        tempIsPaid = value;
+                        if (!value) {
+                          tempPaymentMethod = null;
+                          tempSelectedBank = null;
+                        }
+                      });
+                    },
+                  ),
+                  if (tempIsPaid)
+                    DropdownButtonFormField<String>(
+                      value: tempPaymentMethod,
+                      items: _paymentMethods.map((method) {
+                        return DropdownMenuItem(
+                          value: method,
+                          child: Text(method),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          tempPaymentMethod = value;
+                          if (value != 'Bank Transfer') {
+                            tempSelectedBank = null;
+                          }
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Payment Method'),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Payment method (only shows if Paid)
-                    if (tempIsPaid) ...[
-                      const Text(
-                        "Payment Method",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        initialValue: tempPaymentMethod,
-                        items: _paymentMethods.map((String method) {
-                          return DropdownMenuItem<String>(
-                            value: method,
-                            child: Row(
-                              children: [
-                                Icon(
-                                  method == 'Cash' ? Icons.money :
-                                  method == 'Card' ? Icons.credit_card :
-                                  Icons.account_balance,
-                                  size: 18,
-                                  color: Colors.grey[600],
-                                ),
-                                const SizedBox(width: 8),
-                                Text(method, style: const TextStyle(color: Colors.black)),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        style: const TextStyle(color: Colors.black),
-                        onChanged: (val) {
-                          setDialogState(() {
-                            tempPaymentMethod = val;
-                          });
-                        },
-                        decoration: const InputDecoration(
-                          hintText: "Select payment method",
-                          border: OutlineInputBorder(),
-                          filled: true,
-                          fillColor: Color(0xFFEEEEEE),
-                        ),
-                      ),
-                    ] else ...[
-                      // Credit order message
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange[50],
-                          border: Border.all(color: Colors.orange, width: 1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.orange[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                "This order will be marked as Credit (unpaid). Payment can be collected later.",
-                                style: TextStyle(
-                                  color: Colors.orange[700],
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
+                  if (tempIsPaid && tempPaymentMethod == 'Bank Transfer')
+                    DropdownButtonFormField<String>(
+                      value: tempSelectedBank,
+                      items: _banks.map((bank) {
+                        return DropdownMenuItem(
+                          value: bank,
+                          child: Text(bank),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          tempSelectedBank = value;
+                        });
+                      },
+                      decoration: const InputDecoration(labelText: 'Select Bank'),
+                    ),
+                ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text("Cancel"),
+                  child: const Text('Cancel'),
                 ),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                  ),
                   onPressed: () {
-                    if (tempIsPaid && (tempPaymentMethod == null || tempPaymentMethod!.isEmpty)) {
+                    if (tempIsPaid && tempPaymentMethod == 'Bank Transfer' && tempSelectedBank == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("Please select a payment method."),
+                          content: Text('Please select a bank for Bank Transfer.'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -1179,15 +1061,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     Navigator.of(context).pop({
                       'isPaid': tempIsPaid,
                       'paymentMethod': tempPaymentMethod,
+                      'selectedBank': tempSelectedBank,
                     });
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: tempIsPaid ? Colors.green[700] : Colors.orange[700],
-                  ),
-                  child: Text(
-                    tempIsPaid ? "Complete Paid Order" : "Create Credit Order",
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                  child: const Text('Confirm'),
                 ),
               ],
             );
@@ -1199,7 +1076,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     if (result != null) {
       setState(() {
         _isPaid = result['isPaid'];
-        _selectedPaymentMethod = result['paymentMethod'] ?? 'Cash';
+        _selectedPaymentMethod = result['paymentMethod'];
+        _selectedBank = result['selectedBank'];
       });
       _processOrder();
     }
@@ -1308,6 +1186,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           // Save individual sale details to sales tracking Excel
           await _saveSaleDetails(orderData);
 
+          // Record bank transaction if payment was via Bank Transfer (Income)
+          await _recordBankTransactionIfNeeded();
+
           // Show success message
           if (mounted) {
             ScaffoldMessenger.of(context).clearSnackBars();
@@ -1415,6 +1296,28 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     }
   }
   
+  /// Records an Income entry in the bank transactions ledger when payment is via Bank Transfer.
+  Future<void> _recordBankTransactionIfNeeded() async {
+    if (!_isPaid || _selectedPaymentMethod != 'Bank Transfer' || _selectedBank == null) return;
+    try {
+      final bankAccount = _bankAccountObjects.firstWhere(
+        (a) => a['bankName'] == _selectedBank,
+        orElse: () => {},
+      );
+      if (bankAccount.isEmpty) return;
+      await _excelService.saveBankTransactionToExcel({
+        'bankName': bankAccount['bankName'] ?? _selectedBank,
+        'accountNumber': bankAccount['accountNumber'] ?? '',
+        'transactionDate': DateTime.now().toIso8601String().split('T')[0],
+        'transactionType': 'Income',
+        'transactionAmount': _finalPrice,
+      });
+      debugPrint('✅ Bank transaction recorded: $_selectedBank | Income | BHD $_finalPrice');
+    } catch (e) {
+      debugPrint('⚠️ Failed to record bank transaction: $e');
+    }
+  }
+
   void _clearForm() {
     _isWalkInCustomer = false;
     _customerNameController.clear();

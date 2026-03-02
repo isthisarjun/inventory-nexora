@@ -93,6 +93,15 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     bool includeVat = false;
     double calculatedVatAmount = 0.0;
 
+    // Load bank accounts for Bank Transfer payment selection
+    List<Map<String, dynamic>> bankAccounts = [];
+    String? selectedBankName;
+    try {
+      bankAccounts = await _excelService.loadBankAccountsFromExcel();
+    } catch (e) {
+      debugPrint('Failed to load bank accounts for expense dialog: $e');
+    }
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -273,7 +282,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
+                    // Bank Account Selector (only visible when Bank Transfer is selected)
+                    if (selectedPaymentMethod == 'Bank Transfer') ..._bankAccountsForExpense(bankAccounts, selectedBankName, setDialogState, (val) { selectedBankName = val; }),
+
                     // Row 3: Paid To, Reference, Date
                     Row(
                       children: [
@@ -490,6 +502,26 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                   vatRate: vatRate,
                                   vatAmount: vatAmount,
                                 );
+                                // Record bank transaction if paid via Bank Transfer (Expense: money leaves bank)
+                                if (selectedPaymentMethod == 'Bank Transfer' && selectedBankName != null) {
+                                  try {
+                                    final bankAccount = bankAccounts.firstWhere(
+                                      (a) => a['bankName'] == selectedBankName,
+                                      orElse: () => {},
+                                    );
+                                    if (bankAccount.isNotEmpty) {
+                                      await _excelService.saveBankTransactionToExcel({
+                                        'bankName': bankAccount['bankName'] ?? selectedBankName,
+                                        'accountNumber': bankAccount['accountNumber'] ?? '',
+                                        'transactionDate': selectedDate.toIso8601String().split('T')[0],
+                                        'transactionType': 'Expense',
+                                        'transactionAmount': amount,
+                                      });
+                                    }
+                                  } catch (e) {
+                                    debugPrint('⚠️ Failed to record bank transaction for expense: $e');
+                                  }
+                                }
                                 Navigator.of(context).pop(true);
                               } catch (e) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -537,6 +569,68 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         ),
       );
     }
+  }
+
+  /// Returns widgets for the bank account selector shown inside the expense dialog
+  /// when the user selects "Bank Transfer" as the payment method.
+  List<Widget> _bankAccountsForExpense(
+    List<Map<String, dynamic>> bankAccounts,
+    String? selectedBankName,
+    void Function(void Function()) setDialogState,
+    void Function(String?) onChanged,
+  ) {
+    if (bankAccounts.isEmpty) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange[600], size: 18),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'No bank accounts found. Please add bank accounts first.',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ];
+    }
+    return [
+      DropdownButtonFormField<String>(
+        value: selectedBankName,
+        decoration: InputDecoration(
+          labelText: 'Select Bank Account *',
+          prefixIcon: const Icon(Icons.account_balance, size: 20),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          labelStyle: const TextStyle(fontSize: 14),
+        ),
+        style: const TextStyle(fontSize: 14, color: Colors.black),
+        items: bankAccounts.map((bank) {
+          return DropdownMenuItem<String>(
+            value: bank['bankName']?.toString(),
+            child: Text(
+              '${bank['bankName']} \u2014 ${bank['accountNumber']}',
+              style: const TextStyle(fontSize: 14, color: Colors.black),
+              overflow: TextOverflow.ellipsis,
+            ),
+          );
+        }).toList(),
+        onChanged: (value) {
+          setDialogState(() => onChanged(value));
+        },
+      ),
+      const SizedBox(height: 16),
+    ];
   }
 
   Widget _buildSummaryCards() {

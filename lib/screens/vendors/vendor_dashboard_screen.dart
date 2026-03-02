@@ -33,15 +33,18 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   String _selectedPaymentMethod = 'Cash';
   DateTime _selectedPaymentDate = DateTime.now();
   bool _isProcessingPayment = false;
-  
+  String? _selectedBankForVendorPayment; // Selected bank for Bank Transfer payments
+
   // Payment methods list
   final List<String> _paymentMethods = ['Cash', 'Bank Transfer', 'Check', 'Credit Card', 'Online Payment'];
+  List<Map<String, dynamic>> _bankAccountObjects = []; // Full bank data for account number lookup
 
   @override
   void initState() {
     super.initState();
     _focusNode = FocusNode();
     _loadVendorData();
+    _loadBankAccounts();
     print('📊 VendorDashboardScreen initialized with ESC key support');
     
     // Request focus after the widget is built
@@ -49,6 +52,17 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       _focusNode.requestFocus();
       print('🎯 Focus requested for VendorDashboardScreen');
     });
+  }
+
+  Future<void> _loadBankAccounts() async {
+    try {
+      final accounts = await ExcelService.instance.loadBankAccountsFromExcel();
+      setState(() {
+        _bankAccountObjects = accounts;
+      });
+    } catch (e) {
+      debugPrint('Error loading bank accounts: $e');
+    }
   }
 
   Future<void> _loadVendorData() async {
@@ -1178,6 +1192,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     _paymentReferenceController.clear();
     _paymentNotesController.clear();
     _selectedPaymentMethod = 'Cash';
+    _selectedBankForVendorPayment = null;
     _selectedPaymentDate = DateTime.now();
     
     showDialog(
@@ -1366,7 +1381,59 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 ),
                 
                 const SizedBox(height: 16),
-                
+
+                // Bank Account Selector (only visible for Bank Transfer)
+                if (_selectedPaymentMethod == 'Bank Transfer') ..._bankAccountObjects.isEmpty
+                    ? [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange[50],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange[200]!),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.warning_amber, color: Colors.orange[600], size: 18),
+                              const SizedBox(width: 8),
+                              const Expanded(
+                                child: Text(
+                                  'No bank accounts found. Please add bank accounts first.',
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ]
+                    : [
+                        DropdownButtonFormField<String>(
+                          value: _selectedBankForVendorPayment,
+                          decoration: InputDecoration(
+                            labelText: 'Select Bank Account *',
+                            prefixIcon: const Icon(Icons.account_balance, size: 20),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          items: _bankAccountObjects.map((bank) {
+                            return DropdownMenuItem<String>(
+                              value: bank['bankName']?.toString(),
+                              child: Text(
+                                '${bank['bankName']} — ${bank['accountNumber']}',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setDialogState(() {
+                              _selectedBankForVendorPayment = value;
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                 // Reference Number
                 TextFormField(
                   controller: _paymentReferenceController,
@@ -1484,7 +1551,29 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       
       // Close dialog
       Navigator.pop(dialogContext);
-      
+
+      // Record bank transaction if payment was via Bank Transfer (Income: vendor credit paid into bank)
+      if (_selectedPaymentMethod == 'Bank Transfer' && _selectedBankForVendorPayment != null) {
+        try {
+          final bankAccount = _bankAccountObjects.firstWhere(
+            (a) => a['bankName'] == _selectedBankForVendorPayment,
+            orElse: () => {},
+          );
+          if (bankAccount.isNotEmpty) {
+            await ExcelService.instance.saveBankTransactionToExcel({
+              'bankName': bankAccount['bankName'] ?? _selectedBankForVendorPayment,
+              'accountNumber': bankAccount['accountNumber'] ?? '',
+              'transactionDate': _selectedPaymentDate.toIso8601String().split('T')[0],
+              'transactionType': 'Income',
+              'transactionAmount': paymentAmount,
+            });
+            debugPrint('✅ Vendor bank transaction recorded: $_selectedBankForVendorPayment | Income | BHD $paymentAmount');
+          }
+        } catch (e) {
+          debugPrint('⚠️ Failed to record vendor bank transaction: $e');
+        }
+      }
+
       // Build summary of affected purchases
       final fullyPaid = affectedPurchases.where((p) => p['fullyPaid'] == true).length;
       final partiallyPaid = affectedPurchases.length - fullyPaid;
