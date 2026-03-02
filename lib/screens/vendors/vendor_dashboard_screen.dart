@@ -22,6 +22,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   Map<String, dynamic>? _vendorData;
   List<Map<String, dynamic>> _vendorTransactions = [];
   List<Map<String, dynamic>> _recentPurchases = [];
+  List<Map<String, dynamic>> _creditPurchases = []; // Credit-only purchases (FIFO order)
   bool _isLoading = true;
   String? _error;
 
@@ -90,6 +91,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       _recentPurchases = allPurchases
         .where((p) => p['vendorName']?.toString().toLowerCase() == widget.vendorName.toLowerCase())
         .toList();
+
+      // Load credit-only purchases in FIFO order (oldest first)
+      _creditPurchases = await ExcelService.instance.getVendorCreditPurchases(widget.vendorName);
 
       setState(() {
         _isLoading = false;
@@ -170,13 +174,23 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                         
                         const SizedBox(height: 20),
                         
-                        // Recent Purchases Section
-                        _buildRecentPurchasesSection(),
+                        // Financial Summary Cards
+                        _buildFinancialSummaryCards(),
                         
                         const SizedBox(height: 20),
                         
-                        // Financial Summary Cards
-                        _buildFinancialSummaryCards(),
+                        // === SECTION 1: All Purchases ===
+                        _buildAllPurchasesSection(),
+                        
+                        const SizedBox(height: 4),
+                        
+                        // === SECTION 2: Credit Purchases Only ===
+                        _buildCreditPurchasesSection(),
+                        
+                        const SizedBox(height: 4),
+                        
+                        // === SECTION 3: Pay Credit (FIFO) ===
+                        _buildPayCreditSection(),
                         
                         const SizedBox(height: 20),
                         
@@ -459,130 +473,391 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   }
 
   Widget _buildRecentPurchasesSection() {
+    // Legacy method - kept for compatibility but no longer called from build()
+    return const SizedBox.shrink();
+  }
+
+  // ========== SECTION 1: All Purchases ==========
+  Widget _buildAllPurchasesSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(16),
+            topRight: Radius.circular(16),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(4),
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.shopping_cart, color: Colors.green[600], size: 28),
-                      const SizedBox(width: 12),
-                      const Text(
-                        'Recent Purchases',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  Icon(Icons.shopping_cart, color: Colors.green[600], size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'All Purchases',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  if (_recentPurchases.isNotEmpty)
-                    TextButton(
-                      onPressed: () {
-                        _showAllPurchases();
-                      },
-                      child: const Text('View All'),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                    child: Text(
+                      '${_recentPurchases.length} orders',
+                      style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              
-              if (_recentPurchases.isEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info, color: Colors.grey[600]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'No inventory purchases found for this vendor',
-                          textAlign: TextAlign.start,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ] else ...[
+              if (_recentPurchases.isEmpty)
+                _buildEmptyState('No purchases found for this vendor')
+              else
                 ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _recentPurchases.take(5).length,
-                  separatorBuilder: (context, index) => Divider(color: Colors.grey[300]),
+                  itemCount: _recentPurchases.length,
+                  separatorBuilder: (_, __) => Divider(color: Colors.grey[200]),
                   itemBuilder: (context, index) {
-                    final purchase = _recentPurchases[index];
-                    final items = purchase['items'] as List<dynamic>? ?? [];
-                    final itemsOverview = items.map((item) => '${item['itemName']} (${item['quantity']})').join(', ');
-                    final purchaseId = purchase['purchaseId']?.toString() ?? '';
-                    final date = purchase['date']?.toString() ?? '';
-                    final paymentStatus = purchase['paymentStatus']?.toString() ?? '';
-                    final totalAmount = purchase['totalAmount'] as double? ?? 0.0;
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.green[100],
-                          child: Icon(
-                            Icons.inventory,
-                            color: Colors.green[600],
+                    return _buildPurchaseTile(_recentPurchases[index]);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ========== SECTION 2: Credit Purchases Only ==========
+  Widget _buildCreditPurchasesSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        elevation: 4,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(4),
+            topRight: Radius.circular(4),
+            bottomLeft: Radius.circular(4),
+            bottomRight: Radius.circular(4),
+          ),
+        ),
+        color: Colors.orange[50],
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.credit_card, color: Colors.orange[700], size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Credit Purchases (Unpaid)',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange[100],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${_creditPurchases.length} pending',
+                      style: TextStyle(color: Colors.orange[800], fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Sorted oldest first (FIFO). Payments will settle the oldest purchases first.',
+                style: TextStyle(color: Colors.orange[600], fontSize: 12, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 12),
+              if (_creditPurchases.isEmpty)
+                _buildEmptyState('No outstanding credit purchases — all paid!')
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _creditPurchases.length,
+                  separatorBuilder: (_, __) => Divider(color: Colors.orange[200]),
+                  itemBuilder: (context, index) {
+                    return _buildCreditPurchaseTile(_creditPurchases[index], index + 1);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ========== SECTION 3: Pay Credit (FIFO) ==========
+  Widget _buildPayCreditSection() {
+    final currentCredit = _vendorData!['currentCredit'] as double? ?? 0.0;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        elevation: 4,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(4),
+            topRight: Radius.circular(4),
+            bottomLeft: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
+        color: Colors.green[50],
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.payment, color: Colors.green[700], size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Pay Credit',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Outstanding Balance',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
                           ),
-                        ),
-                        title: SizedBox(
-                          width: double.infinity,
-                          child: Text(
-                            'Purchase ID: $purchaseId',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                            textAlign: TextAlign.start,
+                          const SizedBox(height: 4),
+                          Text(
+                            'BHD ${currentCredit.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: currentCredit > 0 ? Colors.red[700] : Colors.green[700],
+                            ),
                           ),
-                        ),
-                        subtitle: SizedBox(
-                          width: double.infinity,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Date: $date', 
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                textAlign: TextAlign.start,
-                              ),
-                              Text('Items: $itemsOverview', 
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                textAlign: TextAlign.start,
-                              ),
-                              Text('Status: $paymentStatus', 
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                                textAlign: TextAlign.start,
-                              ),
-                            ],
-                          ),
-                        ),
-                        trailing: Text(
-                          'BHD ${totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green[700],
-                            fontSize: 16,
-                          ),
+                          if (_creditPurchases.isNotEmpty)
+                            Text(
+                              '${_creditPurchases.length} credit purchase(s) pending',
+                              style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (currentCredit > 0)
+                      ElevatedButton.icon(
+                        onPressed: () => _showPayCreditDialog(),
+                        icon: const Icon(Icons.payment, size: 20),
+                        label: const Text('Pay Now', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
                         ),
                       ),
-                    );
-                  },
+                  ],
+                ),
+              ),
+              if (currentCredit > 0) ...[
+                const SizedBox(height: 12),
+                Text(
+                  'Payment uses FIFO (First In, First Out) — oldest credit purchases are settled first.',
+                  style: TextStyle(color: Colors.green[600], fontSize: 12, fontStyle: FontStyle.italic),
                 ),
               ],
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ========== Shared purchase tile builders ==========
+  Widget _buildPurchaseTile(Map<String, dynamic> purchase) {
+    final items = purchase['items'] as List<dynamic>? ?? [];
+    final itemsOverview = items.map((item) => '${item['itemName']} (${item['quantity']})').join(', ');
+    final purchaseId = purchase['purchaseId']?.toString() ?? '';
+    final date = purchase['date']?.toString() ?? '';
+    final paymentStatus = purchase['paymentStatus']?.toString() ?? '';
+    final totalAmount = purchase['totalAmount'] as double? ?? 0.0;
+    final isPaid = paymentStatus == 'Paid';
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: isPaid ? Colors.green[100] : Colors.orange[100],
+        child: Icon(
+          isPaid ? Icons.check_circle : Icons.schedule,
+          color: isPaid ? Colors.green[600] : Colors.orange[600],
+        ),
+      ),
+      title: Text(
+        'Purchase ID: $purchaseId',
+        style: const TextStyle(fontWeight: FontWeight.w500),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Date: $date', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Text('Items: $itemsOverview', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isPaid ? Colors.green[100] : Colors.orange[100],
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  paymentStatus,
+                  style: TextStyle(
+                    color: isPaid ? Colors.green[700] : Colors.orange[700],
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+      trailing: Text(
+        'BHD ${totalAmount.toStringAsFixed(2)}',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Colors.green[700],
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditPurchaseTile(Map<String, dynamic> purchase, int fifoOrder) {
+    final items = purchase['items'] as List<dynamic>? ?? [];
+    final itemsOverview = items.map((item) => '${item['itemName']} (${item['quantity']})').join(', ');
+    final purchaseId = purchase['purchaseId']?.toString() ?? '';
+    final date = purchase['date']?.toString() ?? '';
+    final totalAmount = purchase['totalAmount'] as double? ?? 0.0;
+    final paidAmount = purchase['paidAmount'] as double? ?? 0.0;
+    final remainingAmount = purchase['remainingAmount'] as double? ?? 0.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // FIFO order badge
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.orange[600],
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '#$fifoOrder',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(purchaseId, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                Text('Date: $date', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                Text('Items: $itemsOverview', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                const SizedBox(height: 6),
+                // Progress bar showing how much is paid
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: totalAmount > 0 ? paidAmount / totalAmount : 0,
+                    backgroundColor: Colors.orange[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green[500]!),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Paid: BHD ${paidAmount.toStringAsFixed(2)}',
+                      style: TextStyle(color: Colors.green[700], fontSize: 11, fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Remaining: BHD ${remainingAmount.toStringAsFixed(2)}',
+                      style: TextStyle(color: Colors.red[700], fontSize: 11, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                'BHD ${totalAmount.toStringAsFixed(2)}',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[800], fontSize: 15),
+              ),
+              const SizedBox(height: 2),
+              Text('Total', style: TextStyle(color: Colors.grey[500], fontSize: 10)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Expanded(child: Text(message)),
+        ],
       ),
     );
   }
@@ -702,25 +977,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                       style: TextStyle(fontSize: 12),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    // Add Pay Credit button
-                    if (currentCredit > 0)
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _showPayCreditDialog(),
-                          icon: const Icon(Icons.payment, size: 16),
-                          label: const Text('Pay Credit', style: TextStyle(fontSize: 12)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[600],
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),
@@ -1053,7 +1309,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue: _selectedPaymentMethod,
+                        value: _selectedPaymentMethod,
                         decoration: InputDecoration(
                           labelText: 'Payment Method',
                           prefixIcon: const Icon(Icons.payment, size: 20),
@@ -1208,46 +1464,44 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     });
     
     try {
-      final newCreditBalance = currentCredit - paymentAmount;
-      
-      // Generate transaction ID
-      final transactionId = 'TXN-${DateTime.now().millisecondsSinceEpoch}';
-      
-      // Save transaction to Excel
-      await ExcelService.instance.saveTransactionToExcel(
-        transactionType: 'supplier_payment',
-        partyName: widget.vendorName,
-        amount: -paymentAmount, // Negative because it's money going out
-        description: 'Credit payment to ${widget.vendorName}',
-        reference: _paymentReferenceController.text.trim().isEmpty 
-            ? transactionId 
-            : _paymentReferenceController.text.trim(),
-        category: 'Vendor Payment',
-        transactionDate: _selectedPaymentDate,
+      // Use FIFO credit payment — settles oldest credit purchases first
+      final affectedPurchases = await ExcelService.instance.applyFIFOCreditPayment(
+        widget.vendorName,
+        paymentAmount,
+        paymentMethod: _selectedPaymentMethod,
+        reference: _paymentReferenceController.text.trim(),
+        notes: _paymentNotesController.text.trim(),
+        paymentDate: _selectedPaymentDate,
       );
-      
-      // Update vendor credit balance (subtract payment from credit)
-      await ExcelService.instance.updateVendorCredit(widget.vendorName, paymentAmount, 'subtract');
+
+      final newCreditBalance = currentCredit - paymentAmount;
       
       // Update local vendor data
       setState(() {
-        _vendorData!['currentCredit'] = newCreditBalance;
+        _vendorData!['currentCredit'] = newCreditBalance < 0 ? 0.0 : newCreditBalance;
         _isProcessingPayment = false;
       });
       
       // Close dialog
       Navigator.pop(dialogContext);
       
-      // Show success message
+      // Build summary of affected purchases
+      final fullyPaid = affectedPurchases.where((p) => p['fullyPaid'] == true).length;
+      final partiallyPaid = affectedPurchases.length - fullyPaid;
+      String summary = 'Payment of BHD ${paymentAmount.toStringAsFixed(2)} processed (FIFO).\n';
+      if (fullyPaid > 0) summary += '$fullyPaid purchase(s) fully settled. ';
+      if (partiallyPaid > 0) summary += '$partiallyPaid purchase(s) partially paid.';
+      
+      // Show success with FIFO details
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment of BHD ${paymentAmount.toStringAsFixed(2)} processed successfully'),
+          content: Text(summary.trim()),
           backgroundColor: Colors.green[600],
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 5),
         ),
       );
       
-      // Reload data to refresh the display
+      // Reload data to refresh the display (purchases, credit, etc.)
       await _loadVendorData();
       
     } catch (e) {
