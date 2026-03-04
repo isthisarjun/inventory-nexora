@@ -23,16 +23,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   final List<String> _expenseCategories = [
     'Salary',
-    'Office Supplies',
-    'Marketing',
-    'Travel',
-    'Utilities',
     'Rent',
-    'Equipment',
-    'Professional Services',
-    'Insurance',
-    'Taxes',
-    'Other',
+    'Electricity/Water',
+    'Miscellaneous',
   ];
 
   final List<String> _paymentMethods = [
@@ -87,7 +80,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     final vendorController = TextEditingController();
     final referenceController = TextEditingController();
     final vatRateController = TextEditingController(text: '10.0');
-    String selectedCategory = _availableCategories.isNotEmpty ? _availableCategories.first : 'Other';
+    // Use the same merged category list as the filter dropdown
+    final dialogCategories = <String>{
+      ..._expenseCategories,
+      ..._availableCategories,
+    }.toList()..sort();
+    String selectedCategory = dialogCategories.isNotEmpty ? dialogCategories.first : 'Other';
     String selectedPaymentMethod = _paymentMethods.first;
     DateTime selectedDate = DateTime.now();
     bool includeVat = false;
@@ -101,6 +99,8 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     } catch (e) {
       debugPrint('Failed to load bank accounts for expense dialog: $e');
     }
+
+    if (!mounted) return;
 
     final result = await showDialog<bool>(
       context: context,
@@ -117,7 +117,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               border: Border.all(color: Colors.blue[300]!, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.2),
+                  color: Colors.blue.withValues(alpha: 0.2),
                   spreadRadius: 3,
                   blurRadius: 10,
                   offset: const Offset(0, 3),
@@ -235,17 +235,48 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                 labelStyle: const TextStyle(fontSize: 14),
                               ),
                               style: const TextStyle(fontSize: 14),
-                              items: _availableCategories.map((category) {
-                                return DropdownMenuItem(
-                                  value: category,
-                                  child: Text(category, style: const TextStyle(fontSize: 14, color: Colors.black)),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  selectedCategory = value!;
-                                });
-                              },
+                              items: [
+                                ...dialogCategories.map((category) {
+                                  return DropdownMenuItem(
+                                    value: category,
+                                    child: Text(category, style: const TextStyle(fontSize: 14, color: Colors.black)),
+                                  );
+                                }),
+                                DropdownMenuItem(
+                                  value: '__ADD_NEW__',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.add, color: Colors.orange, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Add New Category...', style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w500)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+      onChanged: (value) {
+        if (value == '__ADD_NEW__') {
+          _showAddCategoryDialog(context, (newCategory) {
+            // Persist to parent state so filter dropdown also sees it
+            setState(() {
+              if (!_availableCategories.contains(newCategory)) {
+                _availableCategories.add(newCategory);
+              }
+            });
+            // Rebuild dialog: add to local list and select it
+            setDialogState(() {
+              if (!dialogCategories.contains(newCategory)) {
+                dialogCategories.add(newCategory);
+                dialogCategories.sort();
+              }
+              selectedCategory = newCategory;
+            });
+          });
+        } else {
+          setDialogState(() {
+            selectedCategory = value!;
+          });
+        }
+      },
                             ),
                           ),
                         ),
@@ -405,7 +436,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                       }
                                     });
                                   },
-                                  activeColor: Colors.blue[600],
+                                  activeThumbColor: Colors.blue[600],
                                 ),
                               ],
                             ),
@@ -522,9 +553,9 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                     debugPrint('⚠️ Failed to record bank transaction for expense: $e');
                                   }
                                 }
-                                Navigator.of(context).pop(true);
+                                if (context.mounted) Navigator.of(context).pop(true);
                               } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(content: Text('Error saving expense: $e')),
                                 );
                               }
@@ -606,7 +637,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     }
     return [
       DropdownButtonFormField<String>(
-        value: selectedBankName,
+        initialValue: selectedBankName,
         decoration: InputDecoration(
           labelText: 'Select Bank Account *',
           prefixIcon: const Icon(Icons.account_balance, size: 20),
@@ -631,6 +662,50 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       ),
       const SizedBox(height: 16),
     ];
+  }
+
+  Future<void> _showAddCategoryDialog(BuildContext context, void Function(String) onCategoryAdded) async {
+    final formKey = GlobalKey<FormState>();
+    final categoryController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Category'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: categoryController,
+            decoration: const InputDecoration(
+              labelText: 'Category Name',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Category name is required';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                final newCategory = categoryController.text.trim();
+                onCategoryAdded(newCategory);
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildSummaryCards() {
@@ -1169,6 +1244,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
   }
 
   Widget _buildCompactCategoryFilter() {
+    // Merge hardcoded + dynamically loaded categories, deduplicated
+    final allCategories = {
+      ..._expenseCategories,
+      ..._availableCategories,
+    }.toList()..sort();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1184,7 +1265,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
         SizedBox(
           height: 40,
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedCategory,
+            // If the selected category was just added, it may not be in
+            // allCategories yet when the widget first rebuilds, so guard it.
+            initialValue: _selectedCategory != null && allCategories.contains(_selectedCategory)
+                ? _selectedCategory
+                : null,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1193,14 +1278,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             hint: const Text('All', style: TextStyle(fontSize: 14)),
             isExpanded: true,
             items: [
-              // Clear selection option
+              // "Show all" option
               const DropdownMenuItem<String>(
                 value: null,
                 child: Text('All Categories', style: TextStyle(fontSize: 14)),
               ),
-              
-              // Regular categories from expense categories
-              ..._expenseCategories.map((category) {
+
+              // All known categories
+              ...allCategories.map((category) {
                 return DropdownMenuItem<String>(
                   value: category,
                   child: Text(
@@ -1210,12 +1295,43 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ),
                 );
               }),
+
+              // Add new category option
+              const DropdownMenuItem<String>(
+                value: '__ADD_NEW__',
+                child: Row(
+                  children: [
+                    Icon(Icons.add, color: Colors.orange, size: 18),
+                    SizedBox(width: 6),
+                    Text(
+                      'Add New Category...',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
             onChanged: (value) {
-              setState(() {
-                _selectedCategory = value;
-              });
-              _applyFilters();
+              if (value == '__ADD_NEW__') {
+                _showAddCategoryDialog(context, (newCategory) {
+                  setState(() {
+                    if (!_availableCategories.contains(newCategory)) {
+                      _availableCategories.add(newCategory);
+                    }
+                    _selectedCategory = newCategory;
+                  });
+                  _applyFilters();
+                });
+              } else {
+                setState(() {
+                  _selectedCategory = value;
+                });
+                _applyFilters();
+              }
             },
           ),
         ),
