@@ -889,6 +889,18 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
   final _maximumCreditController = TextEditingController(text: '0');
   final _creditLimitController = TextEditingController(text: '0');
   final _notesController = TextEditingController();
+
+  final _nameFocusNode = FocusNode();
+  final _contactFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _vatNumberFocusNode = FocusNode();
+  final _addressFocusNode = FocusNode();
+  final _cityFocusNode = FocusNode();
+  final _countryFocusNode = FocusNode();
+  final _maximumCreditFocusNode = FocusNode();
+  final _creditLimitFocusNode = FocusNode();
+  final _notesFocusNode = FocusNode();
+
   bool _isSaving = false;
 
   @override
@@ -903,6 +915,16 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
     _maximumCreditController.dispose();
     _creditLimitController.dispose();
     _notesController.dispose();
+    _nameFocusNode.dispose();
+    _contactFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _vatNumberFocusNode.dispose();
+    _addressFocusNode.dispose();
+    _cityFocusNode.dispose();
+    _countryFocusNode.dispose();
+    _maximumCreditFocusNode.dispose();
+    _creditLimitFocusNode.dispose();
+    _notesFocusNode.dispose();
     super.dispose();
   }
 
@@ -995,6 +1017,9 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
     IconData icon, {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
+    FocusNode? focusNode,
+    FocusNode? nextFocusNode,
+    bool autofocus = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -1002,6 +1027,16 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
         controller: controller,
         keyboardType: keyboardType,
         validator: validator,
+        focusNode: focusNode,
+        autofocus: autofocus,
+        textInputAction: nextFocusNode != null ? TextInputAction.next : TextInputAction.done,
+        onFieldSubmitted: (_) {
+          if (nextFocusNode != null) {
+            FocusScope.of(context).requestFocus(nextFocusNode);
+          } else {
+            _saveVendor();
+          }
+        },
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Padding(
@@ -1116,26 +1151,46 @@ class _AddVendorDialogState extends State<AddVendorDialog> {
                         _buildFormField(_nameController, 'Vendor Name *', Icons.store,
                             validator: (v) => (v == null || v.trim().isEmpty)
                                 ? 'Name is required'
-                                : null),
+                                : null,
+                            focusNode: _nameFocusNode,
+                            nextFocusNode: _contactFocusNode,
+                            autofocus: true),
                         _buildFormField(_contactController, 'Phone', Icons.phone,
-                            keyboardType: TextInputType.phone),
+                            keyboardType: TextInputType.phone,
+                            focusNode: _contactFocusNode,
+                            nextFocusNode: _emailFocusNode),
                         _buildFormField(_emailController, 'Email', Icons.email,
-                            keyboardType: TextInputType.emailAddress),
-                        _buildFormField(_vatNumberController, 'VAT Number', Icons.receipt_long),
+                            keyboardType: TextInputType.emailAddress,
+                            focusNode: _emailFocusNode,
+                            nextFocusNode: _vatNumberFocusNode),
+                        _buildFormField(_vatNumberController, 'VAT Number', Icons.receipt_long,
+                            focusNode: _vatNumberFocusNode,
+                            nextFocusNode: _addressFocusNode),
                       ]),
                       _buildSection('Location', Icons.location_on, [
-                        _buildFormField(_addressController, 'Address', Icons.map_outlined),
-                        _buildFormField(_cityController, 'City', Icons.location_city),
-                        _buildFormField(_countryController, 'Country', Icons.flag_outlined),
+                        _buildFormField(_addressController, 'Address', Icons.map_outlined,
+                            focusNode: _addressFocusNode,
+                            nextFocusNode: _cityFocusNode),
+                        _buildFormField(_cityController, 'City', Icons.location_city,
+                            focusNode: _cityFocusNode,
+                            nextFocusNode: _countryFocusNode),
+                        _buildFormField(_countryController, 'Country', Icons.flag_outlined,
+                            focusNode: _countryFocusNode,
+                            nextFocusNode: _maximumCreditFocusNode),
                       ]),
                       _buildSection('Financial', Icons.account_balance_wallet, [
                         _buildFormField(_maximumCreditController, 'Maximum Credit',
                             Icons.credit_score,
-                            keyboardType: TextInputType.number),
+                            keyboardType: TextInputType.number,
+                            focusNode: _maximumCreditFocusNode,
+                            nextFocusNode: _creditLimitFocusNode),
                         _buildFormField(_creditLimitController, 'Current Credit',
                             Icons.credit_card,
-                            keyboardType: TextInputType.number),
-                        _buildFormField(_notesController, 'Notes', Icons.note_outlined),
+                            keyboardType: TextInputType.number,
+                            focusNode: _creditLimitFocusNode,
+                            nextFocusNode: _notesFocusNode),
+                        _buildFormField(_notesController, 'Notes', Icons.note_outlined,
+                            focusNode: _notesFocusNode),
                       ]),
                     ],
                   ),
