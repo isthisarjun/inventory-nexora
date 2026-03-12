@@ -850,7 +850,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       // doesn't falsely report the whole operation as failed.
       bool success = false;
       try {
-        success = await _excelService.saveInventoryItemToExcel(fullItemData);
+        // skipTransactionLog=true: adding a catalog item for sale is not a purchase expense.
+        success = await _excelService.saveInventoryItemToExcel(fullItemData, skipTransactionLog: true);
       } catch (writeError) {
         debugPrint('❌ Excel write error: $writeError');
         success = false;
@@ -1371,14 +1372,14 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         },
         child: SafeArea(
           child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0), // Clean margins on sides
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
           child: Card(
             elevation: 4,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(24.0), // Comfortable internal padding
+              padding: const EdgeInsets.all(16.0),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -1386,18 +1387,18 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                   children: [
                     // Customer Details Section
                     _buildSectionHeader('Customer Details'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.green[100]!.withOpacity(0.3)),
                       ),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(10),
                       child: _buildCustomerDetailsSection(),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Item Details Section
                     _buildSectionHeader('Item Details'),
@@ -1419,25 +1420,25 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.green[100]!.withOpacity(0.3)),
                       ),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(10),
                       child: _buildItemDetailsSection(),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Pricing Section
                     _buildSectionHeader('Pricing'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _buildPricingSection(),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Summary Section
                     _buildSectionHeader('Order Summary'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _buildSummarySection(),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     
                     // Action Buttons
                     _buildActionButtons(),
@@ -1456,7 +1457,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 20,
+        fontSize: 16,
         fontWeight: FontWeight.bold,
         color: Colors.black87,
       ),
@@ -1472,12 +1473,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             'Walk-in Customer',
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
-          subtitle: const Text('Use default customer details and skip entry'),
+          subtitle: const Text('Use default customer details and skip entry', style: TextStyle(fontSize: 12)),
           value: _isWalkInCustomer,
           onChanged: _setWalkInCustomer,
           activeColor: Colors.green,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1485,23 +1486,21 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               // Customer Name field
               Expanded(
                 flex: 2,
-                child: RawKeyboardListener(
-                  focusNode: FocusNode(),
-                  onKey: (event) => _handleKeyNavigation(event, _customerNameFocus),
-                  child: TextFormField(
+                child: TextFormField(
                     controller: _customerNameController,
                     focusNode: _customerNameFocus,
                     enabled: !_isWalkInCustomer,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Customer Name *',
                       hintText: 'Enter customer name',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.person, size: 20),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      prefixIcon: const Icon(Icons.person, size: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      isDense: true,
                       filled: true,
-                      fillColor: Color(0xFFEEEEEE),
+                      fillColor: const Color(0xFFEEEEEE),
                     ),
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
                     validator: (value) {
                       if (_isWalkInCustomer) return null;
                       if (value == null || value.trim().isEmpty) {
@@ -1511,29 +1510,26 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     },
                     onFieldSubmitted: (_) => _focusNextField(_customerNameFocus),
                   ),
-                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               // Phone Number field
               Expanded(
                 flex: 2,
-                child: RawKeyboardListener(
-                  focusNode: FocusNode(),
-                  onKey: (event) => _handleKeyNavigation(event, _customerPhoneFocus),
-                  child: TextFormField(
+                child: TextFormField(
                     controller: _customerPhoneController,
                     focusNode: _customerPhoneFocus,
                     enabled: !_isWalkInCustomer,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Phone Number *',
                       hintText: 'Enter phone number',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.phone, size: 20),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      prefixIcon: const Icon(Icons.phone, size: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      isDense: true,
                       filled: true,
-                      fillColor: Color(0xFFEEEEEE),
+                      fillColor: const Color(0xFFEEEEEE),
                     ),
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
                     keyboardType: TextInputType.phone,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9+\-\s()]')),
@@ -1547,32 +1543,28 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     },
                     onFieldSubmitted: (_) => _focusNextField(_customerPhoneFocus),
                   ),
-                ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               // Address field
               Expanded(
                 flex: 2,
-                child: RawKeyboardListener(
-                  focusNode: FocusNode(),
-                  onKey: (event) => _handleKeyNavigation(event, _customerAddressFocus),
-                  child: TextFormField(
+                child: TextFormField(
                     controller: _customerAddressController,
                     focusNode: _customerAddressFocus,
                     enabled: !_isWalkInCustomer,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Address (Optional)',
                       hintText: 'Enter customer address',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.location_on, size: 20),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      prefixIcon: const Icon(Icons.location_on, size: 16),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      isDense: true,
                       filled: true,
-                      fillColor: Color(0xFFEEEEEE),
+                      fillColor: const Color(0xFFEEEEEE),
                     ),
-                    style: const TextStyle(fontStyle: FontStyle.italic),
+                    style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic),
                     onFieldSubmitted: (_) => _focusNextField(_customerAddressFocus),
                   ),
-                ),
               ),
             ],
           ),
@@ -1590,14 +1582,23 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         }),
         
         // Add item button
-        const SizedBox(height: 16),
-        ElevatedButton.icon(
-          onPressed: _addOrderItem,
-          icon: const Icon(Icons.add),
-          label: const Text('Add Another Item'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerRight,
+          child: ElevatedButton.icon(
+            onPressed: _addOrderItem,
+            icon: const Icon(Icons.add, size: 14),
+            label: const Text('Add Item', style: TextStyle(fontSize: 14)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: Size.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
           ),
         ),
       ],
@@ -1607,58 +1608,36 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   Widget _buildOrderItemWidget(int index) {
     final orderItem = _orderItems[index];
     
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.green[100]!.withOpacity(0.3)),
-        borderRadius: BorderRadius.circular(8),
-        color: Colors.green[50],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with item number and remove button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Item ${index + 1}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: _isLoadingItems
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
               ),
-              if (_orderItems.length > 1)
-                IconButton(
-                  onPressed: () => _removeOrderItem(index),
-                  icon: const Icon(Icons.remove_circle, color: Colors.red),
-                  tooltip: 'Remove item',
-                ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // All fields in a single row aligned with container
-          _isLoadingItems
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              : IntrinsicHeight(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Item selection dropdown - equal width
-                        Expanded(
-                          flex: 2,
-                          child: RawKeyboardListener(
-                            focusNode: FocusNode(),
-                            onKey: (event) => _handleKeyNavigation(event, orderItem.itemDropdownFocus),
-                            child: DropdownButtonFormField<Map<String, dynamic>>(
+            )
+          : IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Remove button (only if more than 1 item)
+                    if (_orderItems.length > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: IconButton(
+                          onPressed: () => _removeOrderItem(index),
+                          icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20),
+                          tooltip: 'Remove item',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        ),
+                      ),
+                    
+                    // Item selection dropdown
+                    Expanded(
+                      flex: 2,
+                          child: DropdownButtonFormField<Map<String, dynamic>>(
                             // Fix 1: Use reactive `value` instead of `initialValue`
                             // so the dropdown updates when selectedItem changes via setState.
                             value: orderItem.selectedItem != null &&
@@ -1666,14 +1645,15 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                 ? _inventoryItems.firstWhere((i) => i['id'] == orderItem.selectedItem!['id'])
                                 : orderItem.selectedItem,
                             focusNode: orderItem.itemDropdownFocus,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Select Item *',
                               hintText: 'Choose item',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.inventory, size: 20),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                              prefixIcon: const Icon(Icons.inventory, size: 16),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              isDense: true,
                               filled: true,
-                              fillColor: Color(0xFFEEEEEE),
+                              fillColor: const Color(0xFFEEEEEE),
                             ),
                           items: [
                             // Option to add new item
@@ -1684,7 +1664,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                 style: TextStyle(
                                   fontStyle: FontStyle.italic,
                                   color: Colors.blue,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
@@ -1696,7 +1676,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                 value: item,
                                 child: Text(
                                   name,
-                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black),
+                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );
@@ -1711,33 +1691,28 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                           },
                           isExpanded: true,
                           menuMaxHeight: 200,
-                          style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.black),
-                          ),
+                          style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black),
                           ),
                         ),
-                      
-                      const SizedBox(width: 12),
                       
                       // Manual item name (only if new item selected)
                       if (orderItem.selectedItem == null)
                         Expanded(
                           flex: 2,
-                          child: RawKeyboardListener(
-                            focusNode: FocusNode(),
-                            onKey: (event) => _handleKeyNavigation(event, orderItem.itemNameFocus),
-                            child: TextFormField(
+                          child: TextFormField(
                               controller: orderItem.itemNameController,
                               focusNode: orderItem.itemNameFocus,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'Item Name *',
                                 hintText: 'Enter name',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.add_box, size: 20),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                prefixIcon: const Icon(Icons.add_box, size: 16),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                isDense: true,
                                 filled: true,
-                                fillColor: Color(0xFFEEEEEE),
+                                fillColor: const Color(0xFFEEEEEE),
                               ),
-                              style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Required';
@@ -1746,33 +1721,28 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                               },
                               onFieldSubmitted: (_) => _focusNextField(orderItem.itemNameFocus),
                             ),
-                          ),
                         ),
-                      
-                      if (orderItem.selectedItem == null) const SizedBox(width: 12),
                       
                       // Quantity field
                       Expanded(
                         flex: 2,
-                        child: RawKeyboardListener(
-                          focusNode: FocusNode(),
-                          onKey: (event) => _handleKeyNavigation(event, orderItem.quantityFocus),
-                          child: TextFormField(
+                        child: TextFormField(
                             controller: orderItem.quantityController,
                             focusNode: orderItem.quantityFocus,
                             decoration: InputDecoration(
                               labelText: 'Qty *',
                               hintText: '0',
-                              border: const OutlineInputBorder(),
-                              prefixIcon: const Icon(Icons.numbers, size: 20),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                              prefixIcon: const Icon(Icons.numbers, size: 16),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              isDense: true,
                               filled: true,
                               fillColor: const Color(0xFFEEEEEE),
                               suffixText: orderItem.selectedItem != null 
                                   ? 'Max: ${(double.tryParse(orderItem.selectedItem!['currentStock'].toString()) ?? 0.0).toStringAsFixed(0)}'
                                   : null,
                             ),
-                            style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -1797,30 +1767,25 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                             },
                             onFieldSubmitted: (_) => _focusNextField(orderItem.quantityFocus),
                           ),
-                        ),
                       ),
-                      
-                      const SizedBox(width: 12),
                       
                       // Unit Price field
                       Expanded(
                         flex: 2,
-                        child: RawKeyboardListener(
-                          focusNode: FocusNode(),
-                          onKey: (event) => _handleKeyNavigation(event, orderItem.priceFocus),
-                          child: TextFormField(
+                        child: TextFormField(
                             controller: orderItem.unitPriceController,
                             focusNode: orderItem.priceFocus,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Price (BHD) *',
                               hintText: '0.00',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.attach_money, size: 20),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                              prefixIcon: const Icon(Icons.attach_money, size: 16),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              isDense: true,
                               filled: true,
-                              fillColor: Color(0xFFEEEEEE),
+                              fillColor: const Color(0xFFEEEEEE),
                             ),
-                            style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             inputFormatters: [
                               FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
@@ -1837,16 +1802,13 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                             },
                             onFieldSubmitted: (_) => _showAddItemDialog(),
                           ),
-                        ),
                       ),
-                      
-                      const SizedBox(width: 12),
                       
                       // Item Total Display (equal width)
                       Expanded(
                         flex: 2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           decoration: BoxDecoration(
                             color: Colors.blue[50],
                             borderRadius: BorderRadius.circular(4),
@@ -1882,8 +1844,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     ],
                   ),
                 ),
-        ],
-      ),
     );
   }
   
@@ -1893,7 +1853,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       children: [
         // Fixed VAT Display
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: Colors.green[50],
             border: Border.all(
@@ -1940,7 +1900,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   
   Widget _buildSummarySection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
@@ -1949,7 +1909,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       child: Column(
         children: [
           _buildSummaryRow('Subtotal:', 'BHD ${_subtotal.toStringAsFixed(3)}'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           _buildSummaryRow(
             'VAT Amount (10%):',
             'BHD ${_vatAmount.toStringAsFixed(3)}',
@@ -1972,7 +1932,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         Text(
           label,
           style: TextStyle(
-            fontSize: isTotal ? 18 : 16,
+            fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             color: isTotal 
                 ? Theme.of(context).colorScheme.primary 
@@ -1982,7 +1942,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         Text(
           value,
           style: TextStyle(
-            fontSize: isTotal ? 18 : 16,
+            fontSize: isTotal ? 16 : 14,
             fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
             color: isTotal 
                 ? Theme.of(context).colorScheme.primary 
@@ -2000,12 +1960,12 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           child: OutlinedButton(
             onPressed: _clearForm,
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               side: BorderSide(color: Colors.grey[400]!),
             ),
             child: const Text(
               'Clear Form',
-              style: TextStyle(fontSize: 16),
+              style: TextStyle(fontSize: 14),
             ),
           ),
         ),
@@ -2017,14 +1977,14 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
             child: const Text(
               'Create Order',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
         ),
