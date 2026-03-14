@@ -1077,7 +1077,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     if (result != null) {
       setState(() {
         _isPaid = result['isPaid'];
-        _selectedPaymentMethod = result['paymentMethod'];
+        _selectedPaymentMethod = result['paymentMethod'] ?? _selectedPaymentMethod;
         _selectedBank = result['selectedBank'];
       });
       _processOrder();
@@ -1273,7 +1273,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         // Prepare sale data with customer information and payment status
         final saleData = {
           'saleId': orderData['orderId'],
-          'date': DateTime.now().toIso8601String().split('T')[0], // YYYY-MM-DD format
+          'date': DateTime.now().toIso8601String().replaceFirst('T', ' ').split('.')[0], // YYYY-MM-DD HH:MM:SS format
           'customerName': orderData['customerName'] ?? 'Walk-in Customer',
           'items': saleItems,
           'vatAmount': _vatAmount,
@@ -1309,7 +1309,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       await _excelService.saveBankTransactionToExcel({
         'bankName': bankAccount['bankName'] ?? _selectedBank,
         'accountNumber': bankAccount['accountNumber'] ?? '',
-        'transactionDate': DateTime.now().toIso8601String().split('T')[0],
+        'transactionDate': DateTime.now().toIso8601String().replaceFirst('T', ' ').split('.')[0],
         'transactionType': 'Income',
         'transactionAmount': _finalPrice,
       });
