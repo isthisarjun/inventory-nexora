@@ -283,13 +283,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       for (int i = 0; i < _orderItems.length; i++) {
         final item = _orderItems[i];
         if (currentFocus == item.itemDropdownFocus) {
-          if (item.selectedItem == null) {
-            item.itemNameFocus.requestFocus();
-          } else {
-            item.quantityFocus.requestFocus();
-          }
-          return;
-        } else if (currentFocus == item.itemNameFocus) {
           item.quantityFocus.requestFocus();
           return;
         } else if (currentFocus == item.quantityFocus) {
@@ -323,15 +316,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             _orderItems[i - 1].priceFocus.requestFocus();
           }
           return;
-        } else if (currentFocus == item.itemNameFocus) {
-          item.itemDropdownFocus.requestFocus();
-          return;
         } else if (currentFocus == item.quantityFocus) {
-          if (item.selectedItem == null) {
-            item.itemNameFocus.requestFocus();
-          } else {
-            item.itemDropdownFocus.requestFocus();
-          }
+          item.itemDropdownFocus.requestFocus();
           return;
         } else if (currentFocus == item.priceFocus) {
           item.quantityFocus.requestFocus();
@@ -1125,10 +1111,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
             'notes': 'Added via new order creation',
           };
 
-          // Check if we're using an existing item or creating a new one
+          // Update stock quantity for selected existing item
           bool success = false;
           if (orderItem.selectedItem != null) {
-            // Using existing item - update stock quantity
             final currentStock = double.tryParse(orderItem.selectedItem!['currentStock'].toString()) ?? 0.0;
             final orderQuantity = double.tryParse(orderItem.quantityController.text) ?? 0.0;
             final newStock = currentStock - orderQuantity; // Subtract because it's a sale
@@ -1137,9 +1122,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               orderItem.selectedItem!['id'].toString(), 
               newStock
             );
-          } else {
-            // Creating new item - add to inventory
-            success = await _excelService.saveInventoryItemToExcel(itemData);
           }
           
           if (!success) {
@@ -1636,7 +1618,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                                 : orderItem.selectedItem,
                             focusNode: orderItem.itemDropdownFocus,
                             decoration: InputDecoration(
-                              labelText: 'Select Item *',
+                              labelText: 'Item *',
                               hintText: 'Choose item',
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
                               prefixIcon: const Icon(Icons.inventory, size: 16),
@@ -1662,7 +1644,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                           ],
                           onChanged: (value) => _onItemSelected(value, index),
                           validator: (value) {
-                            if (orderItem.itemNameController.text.trim().isEmpty) {
+                            if (value == null) {
                               return 'Required';
                             }
                             return null;
@@ -1671,34 +1653,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                           menuMaxHeight: 200,
                           style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black),
                           ),
-                        ),
-                      
-                      // Manual item name (only if new item selected)
-                      if (orderItem.selectedItem == null)
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                              controller: orderItem.itemNameController,
-                              focusNode: orderItem.itemNameFocus,
-                              decoration: InputDecoration(
-                                labelText: 'Item Name *',
-                                hintText: 'Enter name',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                                prefixIcon: const Icon(Icons.add_box, size: 16),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                isDense: true,
-                                filled: true,
-                                fillColor: const Color(0xFFEEEEEE),
-                              ),
-                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Required';
-                                }
-                                return null;
-                              },
-                              onFieldSubmitted: (_) => _focusNextField(orderItem.itemNameFocus),
-                            ),
                         ),
                       
                       // Quantity field
