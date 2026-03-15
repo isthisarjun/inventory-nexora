@@ -188,16 +188,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         _orderItems[index].itemNameController.text = item['name'].toString();
         _orderItems[index].unitPriceController.text = (double.tryParse(item['sellingPrice'].toString()) ?? 0.0).toString();
         _updateCalculations();
-      } else {
-        // User selected "Add New Item" - show the add new item dialog
-        _orderItems[index].itemNameController.clear();
-        _orderItems[index].unitPriceController.clear();
-        _updateCalculations();
-        
-        // Show the add new item dialog
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showAddNewItemDialog(index);
-        });
       }
     });
   }
@@ -1280,7 +1270,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           'subtotal': _subtotal,
           'finalPrice': _finalPrice,
           'isPaid': _isPaid,
-          'paymentMethod': _isPaid ? _selectedPaymentMethod : '',
+          'paymentMethod': _isPaid ? _selectedPaymentMethod : '', // Empty if credit
           'paymentStatus': _isPaid ? 'Paid' : 'Pending',
         };
         
@@ -1656,18 +1646,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                               fillColor: const Color(0xFFEEEEEE),
                             ),
                           items: [
-                            // Option to add new item
-                            const DropdownMenuItem<Map<String, dynamic>>(
-                              value: null,
-                              child: Text(
-                                '+ Add New Item',
-                                style: TextStyle(
-                                  fontStyle: FontStyle.italic,
-                                  color: Colors.blue,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
                             // Existing inventory items
                             ..._inventoryItems.map((item) {
                               final name = item['name'].toString();
