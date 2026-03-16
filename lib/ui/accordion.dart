@@ -120,7 +120,6 @@ class _AccordionState extends State<Accordion> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final effectiveHeaderColor = widget.headerBackgroundColor ?? Colors.grey[50];
     final effectiveContentColor = widget.contentBackgroundColor ?? Colors.white;
     

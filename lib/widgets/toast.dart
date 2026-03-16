@@ -335,7 +335,6 @@ class _ToastManagerState extends State<ToastManager> {
           actionColor: Colors.orange[700]!,
         );
       case ToastType.info:
-      default:
         return _ToastStyle(
           backgroundColor: Colors.blue[50]!,
           icon: Icons.info,

@@ -180,7 +180,7 @@ class _BankAccountsScreenState extends State<BankAccountsScreen> {
     final bool success;
     if (isEditing) {
       success = await _excelService.updateBankAccountInExcel(
-          accountData, existing!['accountNumber'] ?? '');
+          accountData, existing['accountNumber'] ?? '');
     } else {
       success = await _excelService.saveBankAccountToExcel(accountData);
     }

@@ -254,19 +254,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     }
   }
 
-  // Handle keyboard navigation between fields
-  void _handleKeyNavigation(RawKeyEvent event, FocusNode currentFocus) {
-    if (event.runtimeType == RawKeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight || 
-          event.logicalKey == LogicalKeyboardKey.tab ||
-          event.logicalKey == LogicalKeyboardKey.enter) {
-        _focusNextField(currentFocus);
-      } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        _focusPreviousField(currentFocus);
-      }
-    }
-  }
-
   void _focusNextField(FocusNode currentFocus) {
     // Navigate through customer fields first
     if (currentFocus == _customerNameFocus) {
@@ -293,34 +280,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           if (i + 1 < _orderItems.length) {
             _orderItems[i + 1].itemDropdownFocus.requestFocus();
           }
-          return;
-        }
-      }
-    }
-  }
-
-  void _focusPreviousField(FocusNode currentFocus) {
-    // Navigate backwards through customer fields
-    if (currentFocus == _customerPhoneFocus) {
-      _customerNameFocus.requestFocus();
-    } else if (currentFocus == _customerAddressFocus) {
-      _customerPhoneFocus.requestFocus();
-    } else {
-      // Navigate backwards through order items
-      for (int i = 0; i < _orderItems.length; i++) {
-        final item = _orderItems[i];
-        if (currentFocus == item.itemDropdownFocus) {
-          if (i == 0) {
-            _customerAddressFocus.requestFocus();
-          } else {
-            _orderItems[i - 1].priceFocus.requestFocus();
-          }
-          return;
-        } else if (currentFocus == item.quantityFocus) {
-          item.itemDropdownFocus.requestFocus();
-          return;
-        } else if (currentFocus == item.priceFocus) {
-          item.quantityFocus.requestFocus();
           return;
         }
       }
@@ -385,7 +344,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     }
   }
 
-  // Show dialog to add a new inventory item
+  // ignore: unused_element
   Future<void> _showAddNewItemDialog(int orderItemIndex) async {
     // ── Required field controllers ──────────────────────────────────────────
     final nameController        = TextEditingController();
@@ -1092,25 +1051,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         List<String> itemNames = [];
         
         for (var orderItem in _orderItems) {
-          // Prepare item data for inventory
-          final itemData = {
-            'name': orderItem.itemNameController.text.trim(),
-            'category': 'General',
-            'description': 'Item from order',
-            'sku': '',
-            'barcode': '',
-            'unit': 'pcs',
-            'currentStock': double.tryParse(orderItem.quantityController.text) ?? 0.0,
-            'minimumStock': 0.0,
-            'maximumStock': 0.0,
-            'unitCost': double.tryParse(orderItem.unitPriceController.text) ?? 0.0,
-            'sellingPrice': double.tryParse(orderItem.unitPriceController.text) ?? 0.0,
-            'supplier': '',
-            'location': '',
-            'status': 'Active',
-            'notes': 'Added via new order creation',
-          };
-
           // Update stock quantity for selected existing item
           bool success = false;
           if (orderItem.selectedItem != null) {
@@ -1223,13 +1163,19 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   /// Save individual sale details to the sales tracking Excel file
   Future<void> _saveSaleDetails(Map<String, dynamic> orderData) async {
     try {
+      // Skip saving if payment method is Credit
+      if (!_isPaid && _selectedPaymentMethod == 'Credit') {
+        debugPrint('Skipping saving sale details for Credit payment method.');
+        return;
+      }
+
       // Convert order items to sale items format
       List<Map<String, dynamic>> saleItems = [];
-      
+
       for (final orderItem in _orderItems) {
         final quantity = double.tryParse(orderItem.quantityController.text) ?? 0.0;
         final unitPrice = double.tryParse(orderItem.unitPriceController.text) ?? 0.0;
-        
+
         if (orderItem.selectedItem != null && quantity > 0) {
           saleItems.add({
             'itemId': orderItem.selectedItem!['id']?.toString() ?? '',
@@ -1240,7 +1186,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           });
         }
       }
-      
+
       if (saleItems.isNotEmpty) {
         // Prepare sale data with customer information and payment status
         final saleData = {
@@ -1255,13 +1201,13 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           'paymentMethod': _isPaid ? _selectedPaymentMethod : '', // Empty if credit
           'paymentStatus': _isPaid ? 'Paid' : 'Pending',
         };
-        
+
         print('🔍 DEBUG NEW ORDER: Subtotal: $_subtotal, VAT Amount: $_vatAmount, Final Price: $_finalPrice');
         print('💳 DEBUG PAYMENT: Paid: $_isPaid, Method: ${_isPaid ? _selectedPaymentMethod : 'N/A'}');
-        
+
         // Save to sales tracking Excel
         await _excelService.saveSaleToExcel(saleData);
-        
+
         print('Sale details saved to tracking Excel: ${orderData['orderId']}');
       }
     } catch (e) {

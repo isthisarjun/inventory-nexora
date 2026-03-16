@@ -98,7 +98,10 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   List<Map<String, dynamic>> get _filteredOrders {
     var filtered = _allOrders.where((order) {
       // Apply status filter
-      if (_statusFilter != 'all') {
+      if (_statusFilter == 'credit') {
+        final paymentStatus = order['paymentStatus']?.toString().toLowerCase() ?? '';
+        if (paymentStatus != 'credit') return false;
+      } else if (_statusFilter != 'all') {
         final status = order['status']?.toString().toLowerCase() ?? '';
         if (status != _statusFilter) {
           return false;
@@ -1135,6 +1138,239 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
     );
   }
 
+  Future<void> _showCreditPaymentDialog(Map<String, dynamic> order) async {
+    final saleId = order['orderId']?.toString() ?? '';
+    final customerName = order['customerName']?.toString() ?? 'Unknown';
+    final totalAmount = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
+
+    final alreadyPaid = await ExcelService.instance.getTotalPaidForSale(saleId);
+    final remaining = totalAmount - alreadyPaid;
+
+    if (!mounted) return;
+    if (remaining <= 0.001) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This sale is already fully paid.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      return;
+    }
+
+    final amountController = TextEditingController(text: remaining.toStringAsFixed(3));
+    final notesController = TextEditingController();
+    String selectedMethod = 'Cash';
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          titlePadding: EdgeInsets.zero,
+          title: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange[700],
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Record Credit Payment',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Sale #$saleId  •  $customerName',
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[300]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _summaryRow('Total Sale', totalAmount),
+                        _summaryRow('Already Paid', alreadyPaid),
+                        const Divider(height: 12),
+                        _summaryRow('Remaining Balance', remaining, bold: true, color: Colors.red[700]),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: const InputDecoration(
+                      labelText: 'Amount Paying',
+                      prefixText: 'BD ',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    validator: (v) {
+                      final val = double.tryParse(v ?? '');
+                      if (val == null || val <= 0) return 'Enter a valid amount';
+                      if (val > remaining + 0.001) return 'Cannot exceed remaining (${remaining.toStringAsFixed(3)})';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedMethod,
+                    decoration: const InputDecoration(
+                      labelText: 'Payment Method',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Cash', child: Text('Cash')),
+                      DropdownMenuItem(value: 'Card', child: Text('Card')),
+                      DropdownMenuItem(value: 'Bank Transfer', child: Text('Bank Transfer')),
+                      DropdownMenuItem(value: 'Benefit', child: Text('Benefit')),
+                      DropdownMenuItem(value: 'Cheque', child: Text('Cheque')),
+                    ],
+                    onChanged: (v) => setDialogState(() => selectedMethod = v ?? 'Cash'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: notesController,
+                    decoration: const InputDecoration(
+                      labelText: 'Notes (optional)',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                    maxLines: 2,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[700],
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () async {
+                if (!formKey.currentState!.validate()) return;
+                final amountPaid = double.parse(amountController.text.trim());
+                Navigator.pop(ctx);
+                await _processCreditPayment(order, amountPaid, remaining, selectedMethod, notesController.text.trim());
+              },
+              child: const Text('Record Payment'),
+            ),
+          ],
+        ),
+      ),
+    );
+    amountController.dispose();
+    notesController.dispose();
+  }
+
+  Widget _summaryRow(String label, double amount, {bool bold = false, Color? color}) {
+    final style = TextStyle(
+      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+      color: color ?? Colors.black87,
+      fontSize: 13,
+    );
+    final currency = NumberFormat.currency(symbol: 'BD ', decimalDigits: 3);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: style),
+          Text(currency.format(amount), style: style),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _processCreditPayment(
+    Map<String, dynamic> order,
+    double amountPaid,
+    double remaining,
+    String paymentMethod,
+    String notes,
+  ) async {
+    final saleId = order['orderId']?.toString() ?? '';
+    final customerName = order['customerName']?.toString() ?? 'Unknown';
+    final success = await ExcelService.instance.saveCreditPaymentToExcel(
+      saleId: saleId,
+      customerName: customerName,
+      amountPaid: amountPaid,
+      paymentMethod: paymentMethod,
+      notes: notes,
+    );
+
+    if (!success) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to save payment. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    final fullyPaid = amountPaid >= remaining - 0.001;
+    if (fullyPaid) {
+      await ExcelService.instance.updateSalePaymentStatus(saleId, 'Paid');
+      if (mounted) {
+        setState(() {
+          final idx = _allOrders.indexWhere((o) => o['orderId'] == saleId);
+          if (idx != -1) {
+            _allOrders[idx] = Map<String, dynamic>.from(_allOrders[idx])
+              ..['paymentStatus'] = 'paid'
+              ..['status'] = 'completed';
+          }
+        });
+      }
+    }
+
+    if (mounted) {
+      final currency = NumberFormat.currency(symbol: 'BD ', decimalDigits: 3);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            fullyPaid
+                ? 'Payment of ${currency.format(amountPaid)} recorded. Sale fully paid!'
+                : 'Payment of ${currency.format(amountPaid)} recorded. Remaining: ${currency.format(remaining - amountPaid)}',
+          ),
+          backgroundColor: fullyPaid ? Colors.green : Colors.orange[700],
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1203,6 +1439,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                               DropdownMenuItem(value: 'ready', child: Text('Ready')),
                               DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
                               DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                              DropdownMenuItem(value: 'credit', child: Text('Credit / Unpaid')),
                             ],
                             onChanged: (value) {
                               setState(() {
@@ -1283,6 +1520,24 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                                   ),
                                                 ),
                                               ),
+                                              if (order['paymentStatus']?.toString().toLowerCase() == 'credit') ...[
+                                                const SizedBox(width: 6),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red[700],
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: const Text(
+                                                    'UNPAID',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ],
                                           ),
                                           Text(
@@ -1462,6 +1717,25 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
                                           ),
                                         ),
                                       ),
+                                      if (order['paymentStatus']?.toString().toLowerCase() == 'credit') ...[
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () => _showCreditPaymentDialog(order),
+                                            icon: const Icon(Icons.payment, size: 16),
+                                            label: const Text('Record Payment'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.orange[700],
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),

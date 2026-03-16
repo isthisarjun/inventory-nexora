@@ -208,13 +208,6 @@ class Button extends StatelessWidget {
           textColor: Colors.white,
           borderColor: Colors.green[600],
         );
-      
-      default:
-        return _StyleProperties(
-          backgroundColor: Colors.green[700]!,
-          textColor: Colors.white,
-          borderColor: Colors.green[700],
-        );
     }
   }
   
@@ -246,15 +239,6 @@ class Button extends StatelessWidget {
           iconSpacing: 10,
           borderRadius: 8,
         );
-      
-      default:
-        return _SizeProperties(
-          height: 40,
-          fontSize: 14,
-          iconSize: 18,
-          iconSpacing: 8,
-          borderRadius: 6,
-        );
     }
   }
   
@@ -268,9 +252,6 @@ class Button extends StatelessWidget {
       
       case ButtonSize.large:
         return const EdgeInsets.symmetric(horizontal: 20, vertical: 14);
-      
-      default:
-        return const EdgeInsets.symmetric(horizontal: 16, vertical: 10);
     }
   }
 }

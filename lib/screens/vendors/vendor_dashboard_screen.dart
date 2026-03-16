@@ -486,11 +486,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     );
   }
 
-  Widget _buildRecentPurchasesSection() {
-    // Legacy method - kept for compatibility but no longer called from build()
-    return const SizedBox.shrink();
-  }
-
   // ========== SECTION 1: All Purchases ==========
   Widget _buildAllPurchasesSection() {
     return Container(
@@ -1155,18 +1150,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
     );
   }
 
-  // Helper method for purchase date formatting
-  String _formatPurchaseDate(String? dateStr) {
-    if (dateStr == null || dateStr.isEmpty) return 'Unknown date';
-    
-    try {
-      final dateTime = DateTime.parse(dateStr);
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    } catch (e) {
-      return dateStr;
-    }
-  }
-
   List<FlSpot> _generateChartSpots() {
     // Generate spots for the chart based on transaction history
     final expenseTransactions = _vendorTransactions
@@ -1605,66 +1588,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         ),
       );
     }
-  }
-
-  void _showAllPurchases() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('All Purchases - ${widget.vendorName}'),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 400,
-          child: ListView.builder(
-            itemCount: _recentPurchases.length,
-            itemBuilder: (context, index) {
-              final purchase = _recentPurchases[index];
-              final totalCost = purchase['totalCost'] as double? ?? 0.0;
-              final quantity = purchase['quantity'] as double? ?? 0.0;
-              final unitCost = purchase['unitCost'] as double? ?? 0.0;
-              final unit = purchase['unit']?.toString() ?? 'pcs';
-              
-              // Calculate total if not provided
-              final displayTotal = totalCost > 0 ? totalCost : (quantity * unitCost);
-              
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.green[100],
-                  child: Icon(
-                    Icons.inventory,
-                    color: Colors.green[600],
-                  ),
-                ),
-                title: Text(purchase['itemName']?.toString() ?? 'Unknown Item'),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Qty: ${quantity.toStringAsFixed(quantity % 1 == 0 ? 0 : 1)} $unit'),
-                    Text('Unit Cost: BHD ${unitCost.toStringAsFixed(3)}'),
-                    if (purchase['invoiceNumber']?.toString().isNotEmpty == true)
-                      Text('Invoice: ${purchase['invoiceNumber']}'),
-                    Text(_formatPurchaseDate(purchase['purchaseDate'])),
-                  ],
-                ),
-                trailing: Text(
-                  'BHD ${displayTotal.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green[700],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showWebsiteDialog(String website) {
