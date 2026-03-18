@@ -38,6 +38,10 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
   final _unitCostFocusNode = FocusNode();
   final _sellingPriceFocusNode = FocusNode();
   final _addButtonFocusNode = FocusNode();
+
+  // Screen-level focus nodes
+  final _screenFocusNode = FocusNode();
+  final _addItemBtnFocusNode = FocusNode();
   
   // List of focus nodes for navigation
   late List<FocusNode> _focusNodes;
@@ -58,6 +62,11 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     ];
     
     _loadInventoryData();
+
+    // Give the screen initial keyboard focus after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _screenFocusNode.requestFocus();
+    });
   }
 
   @override
@@ -73,6 +82,8 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     for (final focusNode in _focusNodes) {
       focusNode.dispose();
     }
+    _screenFocusNode.dispose();
+    _addItemBtnFocusNode.dispose();
     
     super.dispose();
   }
@@ -296,9 +307,40 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventory Items'),
+    return Focus(
+      focusNode: _screenFocusNode,
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
+          if (_showAddItemForm) {
+            setState(() => _showAddItemForm = false);
+            _clearForm();
+            _screenFocusNode.requestFocus();
+          } else {
+            context.go('/home');
+          }
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.enter) {
+          // Only handle Enter when no text field has focus
+          final anyFieldFocused = _focusNodes.any((fn) => fn.hasFocus);
+          if (anyFieldFocused) return KeyEventResult.ignored;
+          if (!_showAddItemForm) {
+            setState(() => _showAddItemForm = true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _nameFocusNode.requestFocus();
+            });
+            return KeyEventResult.handled;
+          } else {
+            _nameFocusNode.requestFocus();
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Inventory Items'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
         leading: IconButton(
@@ -364,14 +406,28 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                 ),
                               ),
                               const Spacer(),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    _showAddItemForm = !_showAddItemForm;
-                                  });
+                              Focus(
+                                focusNode: _addItemBtnFocusNode,
+                                onKeyEvent: (node, event) {
+                                  if (event is KeyDownEvent &&
+                                      event.logicalKey == LogicalKeyboardKey.enter) {
+                                    setState(() => _showAddItemForm = true);
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      _nameFocusNode.requestFocus();
+                                    });
+                                    return KeyEventResult.handled;
+                                  }
+                                  return KeyEventResult.ignored;
                                 },
-                                icon: const Icon(Icons.add),
-                                label: const Text('Add Item'),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    setState(() {
+                                      _showAddItemForm = !_showAddItemForm;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Add Item'),
+                                ),
                               ),
                             ],
                           ),
@@ -916,49 +972,20 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                 Expanded(
                                   child: Builder(
                                     builder: (context) {
-                                      final groupedItems = _groupItemsByAlphabet();
+                                      final activeItems = _filteredItems
+                                          .where((item) => item['status'] == 'Active')
+                                          .toList();
                                       
-                                      if (groupedItems.isEmpty) {
+                                      if (activeItems.isEmpty) {
                                         return const Center(
                                           child: Text('No active items found'),
                                         );
                                       }
                                       
                                       return ListView.builder(
-                                        itemCount: groupedItems.length,
-                                        itemBuilder: (context, groupIndex) {
-                                          final letter = groupedItems.keys.elementAt(groupIndex);
-                                          final itemsInGroup = groupedItems[letter]!;
-                                          
-                                          return Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              // Alphabet Header
-                                              Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                                child: Text(
-                                                  letter,
-                                                  style: const TextStyle(
-                                                    fontSize: 22,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                              ),
-                                              
-                                              // Container for items in this alphabet group
-                                              Container(
-                                                margin: const EdgeInsets.symmetric(horizontal: 16),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green[25], // Very light green background
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: Colors.green[100]!, // Subtle green border
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                child: Column(
-                                                  children: itemsInGroup.map((item) {
+                                        itemCount: activeItems.length,
+                                        itemBuilder: (context, index) {
+                                          final item = activeItems[index];
                                                     final currentStock = (item['currentStock'] ?? 0.0) as double;
                                                     final minimumStock = (item['minimumStock'] ?? 0.0) as double;
                                                     final unitCost = (item['unitCost'] ?? 0.0) as double;
@@ -1141,14 +1168,6 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                                     ),
                                                   ),
                                                 );
-                                                  }).toList(),
-                                                ),
-                                              ),
-                                              
-                                              // Add some spacing after each group
-                                              const SizedBox(height: 8),
-                                            ],
-                                          );
                                         },
                                       );
                                     },
@@ -1159,6 +1178,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                     ),
                   ],
                 ),
+      ),
     );
   }
 
