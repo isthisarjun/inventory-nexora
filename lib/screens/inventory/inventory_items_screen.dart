@@ -20,6 +20,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
   String? _error;
   bool _showAddItemForm = false;
   String _searchQuery = '';
+  List<String> _itemCategories = [];
   
   // Removed VAT functionality as per requirements
   
@@ -62,6 +63,7 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     ];
     
     _loadInventoryData();
+    _loadItemCategories();
 
     // Give the screen initial keyboard focus after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -112,6 +114,15 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
     // Return the next ID
     final nextNumber = maxNumber + 1;
     return 'ITM-${nextNumber.toString().padLeft(5, '0')}';
+  }
+
+  Future<void> _loadItemCategories() async {
+    final categories = await _excelService.loadItemCategoriesFromExcel();
+    if (mounted) {
+      setState(() {
+        _itemCategories = categories;
+      });
+    }
   }
 
   Future<void> _loadInventoryData() async {
@@ -175,6 +186,16 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
       final success = await _excelService.saveInventoryItemToExcel(itemData);
       
       if (success) {
+        // If the category is new, append it to inventory_categories.xlsx
+        final enteredCategory = itemData['category'] as String;
+        final alreadyExists = _itemCategories.any(
+          (c) => c.toLowerCase() == enteredCategory.toLowerCase(),
+        );
+        if (!alreadyExists && enteredCategory.isNotEmpty) {
+          await _excelService.addItemCategoryToExcel(enteredCategory);
+          await _loadItemCategories();
+        }
+
         _clearForm();
         setState(() {
           _showAddItemForm = false;
@@ -580,44 +601,55 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
-                                      child: SizedBox(
-                                        height: 60,
-                                        child: KeyboardListener(
-                                          focusNode: FocusNode(),
-                                          onKeyEvent: (KeyEvent event) {
-                                            if (event is KeyDownEvent) {
-                                              _handleArrowKeyNavigation(event.logicalKey);
-                                            }
-                                          },
-                                          child: TextFormField(
-                                            controller: _categoryController,
-                                            focusNode: _categoryFocusNode,
-                                            decoration: InputDecoration(
-                                              labelText: 'Category *',
-                                              prefixIcon: const Icon(Icons.category, size: 20, color: Colors.green),
-                                              border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              focusedBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
-                                              ),
-                                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                              labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
-                                            ),
-                                            style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
-                                            onFieldSubmitted: (value) {
-                                              // Move to stock field when Enter is pressed
-                                              FocusScope.of(context).requestFocus(_stockFocusNode);
-                                            },
-                                            validator: (value) {
-                                              if (value == null || value.trim().isEmpty) {
-                                                return 'Required';
-                                              }
-                                              return null;
-                                            },
+                                      child: DropdownButtonFormField<String>(
+                                        focusNode: _categoryFocusNode,
+                                        value: _categoryController.text.isNotEmpty &&
+                                                _itemCategories.contains(_categoryController.text)
+                                            ? _categoryController.text
+                                            : null,
+                                        decoration: InputDecoration(
+                                          labelText: 'Category *',
+                                          prefixIcon: const Icon(Icons.category, size: 20, color: Colors.green),
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
+                                          focusedBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                            borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+                                          ),
+                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          labelStyle: TextStyle(fontSize: 14, color: Colors.green[600]),
                                         ),
+                                        style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: Colors.black),
+                                        isExpanded: true,
+                                        items: [
+                                          ..._itemCategories.map((cat) => DropdownMenuItem<String>(
+                                                value: cat,
+                                                child: Row(children: [
+                                                  const Icon(Icons.category, size: 16, color: Colors.green),
+                                                  const SizedBox(width: 8),
+                                                  Flexible(child: Text(cat, overflow: TextOverflow.ellipsis)),
+                                                ]),
+                                              )),
+                                          const DropdownMenuItem<String>(
+                                            value: '__add_new__',
+                                            child: Row(children: [
+                                              Icon(Icons.add_circle_outline, size: 16, color: Colors.green),
+                                              SizedBox(width: 8),
+                                              Text('Add New Category',
+                                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600)),
+                                            ]),
+                                          ),
+                                        ],
+                                        onChanged: (value) async {
+                                          if (value == '__add_new__') {
+                                            await _showAddCategoryDialog();
+                                          } else if (value != null) {
+                                            setState(() => _categoryController.text = value);
+                                            FocusScope.of(context).requestFocus(_stockFocusNode);
+                                          }
+                                        },
+                                        validator: (_) => _categoryController.text.trim().isEmpty ? 'Required' : null,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -2238,6 +2270,67 @@ class _InventoryItemsScreenState extends State<InventoryItemsScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final ctrl = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        Future<void> submit() async {
+          final name = ctrl.text.trim();
+          if (name.isEmpty) return;
+          Navigator.of(ctx).pop();
+          final added = await _excelService.addItemCategoryToExcel(name);
+          await _loadItemCategories();
+          if (mounted) {
+            setState(() => _categoryController.text = name);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(added ? 'Category "$name" added.' : '"$name" already exists.'),
+              backgroundColor: added ? Colors.green : Colors.orange,
+            ));
+          }
+        }
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(children: [
+            Icon(Icons.add_circle_outline, color: Colors.green),
+            SizedBox(width: 8),
+            Text('New Category', style: TextStyle(fontSize: 18)),
+          ]),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: 'Category Name',
+              hintText: 'e.g. Electronics',
+              prefixIcon: const Icon(Icons.category, color: Colors.green),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: Colors.green[400]!, width: 2),
+              ),
+            ),
+            onSubmitted: (_) => submit(),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(ctx).pop(), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: submit,
+              child: const Text('Add'),
+            ),
+          ],
+        );
+      },
+    );
+    ctrl.dispose();
   }
 
   Widget _buildModernFormField({
