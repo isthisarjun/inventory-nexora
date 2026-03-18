@@ -1141,7 +1141,7 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
   Future<void> _showCreditPaymentDialog(Map<String, dynamic> order) async {
     final saleId = order['orderId']?.toString() ?? '';
     final customerName = order['customerName']?.toString() ?? 'Unknown';
-    final totalAmount = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    final totalAmount = (order['totalCost'] as num?)?.toDouble() ?? 0.0;
 
     final alreadyPaid = await ExcelService.instance.getTotalPaidForSale(saleId);
     final remaining = totalAmount - alreadyPaid;
@@ -1279,8 +1279,9 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
                 final amountPaid = double.parse(amountController.text.trim());
+                final notes = notesController.text.trim();
                 Navigator.pop(ctx);
-                await _processCreditPayment(order, amountPaid, remaining, selectedMethod, notesController.text.trim());
+                await _processCreditPayment(order, amountPaid, remaining, selectedMethod, notes);
               },
               child: const Text('Record Payment'),
             ),
@@ -1288,8 +1289,6 @@ class _AllOrdersScreenState extends State<AllOrdersScreen> {
         ),
       ),
     );
-    amountController.dispose();
-    notesController.dispose();
   }
 
   Widget _summaryRow(String label, double amount, {bool bold = false, Color? color}) {
