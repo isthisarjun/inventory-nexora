@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:tailor_v3/services/excel_service.dart';
+import 'package:tailor_v3/routes/app_routes.dart';
 import '../inventory/inventory_management_screen.dart';
 import 'package:tailor_v3/theme/colors.dart';
 
@@ -15,23 +16,23 @@ class PurchaseItemsScreen extends StatefulWidget {
 class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   final _formKey = GlobalKey<FormState>();
   final ExcelService _excelService = ExcelService();
-  
+
   // Controllers
   final _quantityController = TextEditingController();
   final _unitCostController = TextEditingController();
   final _notesController = TextEditingController();
   final _vendorSearchController = TextEditingController();
-  
+
   // Search state
   List<Map<String, dynamic>> _filteredVendors = [];
   bool _showVendorSuggestions = false;
   int _selectedVendorIndex = -1;
-  
+
   // Data lists
   List<Map<String, dynamic>> _vendors = [];
   List<Map<String, dynamic>> _inventoryItems = [];
   final List<Map<String, dynamic>> _purchaseItems = [];
-  
+
   // Selected values
   String? _selectedVendorId;
   String? _selectedItemId;
@@ -41,23 +42,25 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   bool _isPaid = true;
   bool _isLoading = false;
   bool _isAddingItem = false;
-  
+
   // Purchase ID state
   String _purchaseId = '';
   bool _isLoadingPurchaseId = true;
-  
+
   // VAT state - default to VAT inclusive
   bool _isVATInclusive = true;
-  
+
   @override
   void initState() {
     super.initState();
-    
+
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+
     // Generate sequential purchase ID
     _generateSequentialPurchaseId();
-    
+
     _loadData();
-    
+
     // Add listeners to update button state when fields change
     _quantityController.addListener(() {
       _updateAddButtonState();
@@ -67,8 +70,20 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     });
   }
 
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      if (mounted) {
+        context.go(AppRoutes.home);
+      }
+      return true;
+    }
+    return false;
+  }
+
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _quantityController.dispose();
     _unitCostController.dispose();
     _notesController.dispose();
@@ -77,7 +92,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       _itemFieldController!.removeListener(_onItemTextChanged);
     }
     _isAddEnabledNotifier.dispose();
-    
+
     super.dispose();
   }
 
@@ -93,7 +108,8 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       return;
     }
     final expected = '${selected['id']} - ${selected['name']}';
-    if (_itemFieldController != null && _itemFieldController!.text != expected) {
+    if (_itemFieldController != null &&
+        _itemFieldController!.text != expected) {
       _selectedItemId = null;
       _updateAddButtonState();
     }
@@ -104,7 +120,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     try {
       final vendors = await _excelService.loadVendorsFromExcel();
       final items = await _excelService.loadInventoryItemsFromExcel();
-      
+
       setState(() {
         _vendors = vendors;
         _inventoryItems = items;
@@ -126,11 +142,14 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _selectedVendorIndex = -1;
       } else {
         _filteredVendors = _vendors.where((vendor) {
-          final vendorName = vendor['vendorName']?.toString().toLowerCase() ?? '';
+          final vendorName =
+              vendor['vendorName']?.toString().toLowerCase() ?? '';
           return vendorName.contains(query.toLowerCase());
         }).toList();
         _showVendorSuggestions = _filteredVendors.isNotEmpty;
-        _selectedVendorIndex = _filteredVendors.isNotEmpty ? 0 : -1; // Auto-select first match
+        _selectedVendorIndex = _filteredVendors.isNotEmpty
+            ? 0
+            : -1; // Auto-select first match
       }
     });
   }
@@ -138,13 +157,13 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   // Helper method to check if all required fields are filled
   bool _areAllFieldsFilled() {
     return _selectedVendorId != null &&
-           _selectedItemId != null &&
-           _quantityController.text.trim().isNotEmpty &&
-           _unitCostController.text.trim().isNotEmpty &&
-           double.tryParse(_quantityController.text) != null &&
-           double.tryParse(_quantityController.text)! > 0 &&
-           double.tryParse(_unitCostController.text) != null &&
-           double.tryParse(_unitCostController.text)! > 0;
+        _selectedItemId != null &&
+        _quantityController.text.trim().isNotEmpty &&
+        _unitCostController.text.trim().isNotEmpty &&
+        double.tryParse(_quantityController.text) != null &&
+        double.tryParse(_quantityController.text)! > 0 &&
+        double.tryParse(_unitCostController.text) != null &&
+        double.tryParse(_unitCostController.text)! > 0;
   }
 
   void _updateAddButtonState() {
@@ -163,10 +182,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
 
       // Get the last purchase ID from Excel
       final lastPurchaseId = await _getLastPurchaseId();
-      
+
       // Generate next sequential ID
       final nextSequentialNumber = _getNextSequentialNumber(lastPurchaseId);
-      
+
       setState(() {
         _purchaseId = 'PUR_${nextSequentialNumber.toString().padLeft(5, '0')}';
         _isLoadingPurchaseId = false;
@@ -184,15 +203,15 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     try {
       // Get all purchase entries to find the last purchase ID
       final purchases = await _excelService.getAllPurchaseEntries();
-      
+
       if (purchases.isEmpty) {
         return 'PUR_01000'; // Start from 01000 so next will be 01001
       }
-      
+
       // Find the highest purchase ID
       String lastId = 'PUR_01000';
       int highestNumber = 1000;
-      
+
       for (var purchase in purchases) {
         String purchaseId = purchase['purchaseId']?.toString() ?? '';
         if (purchaseId.startsWith('PUR_')) {
@@ -204,7 +223,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           }
         }
       }
-      
+
       return lastId;
     } catch (e) {
       return 'PUR_01000'; // Default fallback
@@ -228,7 +247,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
 
   void _addItemToPurchase() async {
     if (_isAddingItem) return; // Prevent double-clicks
-    
+
     setState(() {
       _isAddingItem = true;
     });
@@ -238,30 +257,30 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _showErrorSnackBar('Please select an item');
         return;
       }
-      
+
       final quantity = double.tryParse(_quantityController.text);
       final unitCost = double.tryParse(_unitCostController.text);
-      
+
       if (quantity == null || quantity <= 0) {
         _showErrorSnackBar('Please enter valid quantity');
         return;
       }
-      
+
       if (unitCost == null || unitCost <= 0) {
         _showErrorSnackBar('Please enter valid unit cost');
         return;
       }
-      
+
       final selectedItem = _inventoryItems.firstWhere(
         (item) => item['id'] == _selectedItemId,
         orElse: () => {},
       );
-      
+
       if (selectedItem.isEmpty) {
         _showErrorSnackBar('Item not found');
         return;
       }
-      
+
       final purchaseItem = {
         'itemId': _selectedItemId,
         'itemName': selectedItem['name'],
@@ -273,10 +292,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         'actualCost': _isVATInclusive ? unitCost / 1.10 : unitCost,
         'vatAmount': _isVATInclusive ? (unitCost - (unitCost / 1.10)) : 0.0,
       };
-      
+
       // Add a small delay for better UX feedback
       await Future.delayed(const Duration(milliseconds: 300));
-      
+
       setState(() {
         _purchaseItems.add(purchaseItem);
         _selectedItemId = null;
@@ -284,7 +303,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _unitCostController.clear();
       });
       _updateAddButtonState();
-      
+
       _showSuccessSnackBar('Item added to purchase list!');
     } catch (e) {
       _showErrorSnackBar('Error adding item: $e');
@@ -305,34 +324,35 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     // Custom validation for saving purchase (not adding items)
     bool isValidForSave = true;
     String errorMessage = '';
-    
+
     // Check if vendor is selected for the purchase
     if (_selectedVendorId == null) {
       isValidForSave = false;
       errorMessage = 'Please select a vendor for this purchase';
     }
-    
+
     // Check if items have been added to purchase list
     if (_purchaseItems.isEmpty) {
       isValidForSave = false;
-      errorMessage = 'Please add at least one item to the purchase list. Select an item, enter quantity and cost, then click "Add Item".';
+      errorMessage =
+          'Please add at least one item to the purchase list. Select an item, enter quantity and cost, then click "Add Item".';
     }
-    
+
     if (!isValidForSave) {
       _showErrorSnackBar(errorMessage);
       return;
     }
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       final selectedVendor = _vendors.firstWhere(
         (vendor) => vendor['vendorId'] == _selectedVendorId,
       );
-      
+
       // Use the sequential purchase ID instead of random timestamp
       final purchaseId = _purchaseId;
-      
+
       final purchaseData = {
         'id': purchaseId,
         'purchaseId': purchaseId, // Add this field for tracking
@@ -345,11 +365,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         'paymentStatus': _isPaid ? 'Paid' : 'Credit',
         'isPaid': _isPaid,
       };
-      
+
       // Save purchase details
 
       final success = await _excelService.savePurchaseToExcel(purchaseData);
-      
+
       if (success) {
         // Update inventory stock and cost using weighted average formula
         for (final item in _purchaseItems) {
@@ -359,9 +379,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             item['actualCost'], // Use VAT-exclusive cost for weighted average
           );
         }
-        
-        _showSuccessSnackBar('Purchase saved successfully! Updated ${_purchaseItems.length} items in inventory.');
-        
+
+        _showSuccessSnackBar(
+          'Purchase saved successfully! Updated ${_purchaseItems.length} items in inventory.',
+        );
+
         _resetForm();
       } else {
         _showErrorSnackBar('Failed to save purchase');
@@ -388,26 +410,20 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       _selectedVendorIndex = -1;
     });
     _updateAddButtonState();
-    
+
     // Generate new purchase ID for next purchase
     _generateSequentialPurchaseId();
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.error),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.primary,
-      ),
+      SnackBar(content: Text(message), backgroundColor: AppColors.primary),
     );
   }
 
@@ -416,13 +432,17 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Purchase Items'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.go(AppRoutes.home),
+        ),
       ),
-        body: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
               // Section 1: Vendor Details
               _buildSectionCard(
                 title: 'Vendor Details',
@@ -435,9 +455,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                   ],
                 ),
               ),
-                
+
               const SizedBox(height: 20),
-              
+
               // Section 2: Purchase Details
               _buildSectionCard(
                 title: 'Purchase Details',
@@ -457,11 +477,18 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Date: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ],
                             ),
@@ -469,7 +496,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.receipt_long, size: 16, color: Colors.grey),
+                                const Icon(
+                                  Icons.receipt_long,
+                                  size: 16,
+                                  color: Colors.grey,
+                                ),
                                 const SizedBox(width: 8),
                                 _isLoadingPurchaseId
                                     ? Row(
@@ -485,13 +516,20 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                                           const SizedBox(width: 8),
                                           Text(
                                             'Generating ID...',
-                                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
                                         ],
                                       )
                                     : Text(
                                         'ID: $_purchaseId',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                               ],
                             ),
@@ -519,37 +557,44 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                           width: 120,
                           height: 60,
                           child: ValueListenableBuilder<bool>(
-                                  valueListenable: _isAddEnabledNotifier,
-                                  builder: (context, isEnabled, _) {
-                                    return ElevatedButton.icon(
-                                      onPressed: isEnabled && !_isAddingItem ? _addItemToPurchase : null,
-                                      icon: _isAddingItem 
-                                          ? const SizedBox(
-                                              width: 16,
-                                              height: 16,
-                                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                            )
-                                          : const Icon(Icons.add, size: 18),
-                                      label: Text(_isAddingItem ? 'Adding...' : 'Add Item'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.blue[600],
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                            valueListenable: _isAddEnabledNotifier,
+                            builder: (context, isEnabled, _) {
+                              return ElevatedButton.icon(
+                                onPressed: isEnabled && !_isAddingItem
+                                    ? _addItemToPurchase
+                                    : null,
+                                icon: _isAddingItem
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
                                         ),
-                                      ),
-                                    );
-                                  },
+                                      )
+                                    : const Icon(Icons.add, size: 18),
+                                label: Text(
+                                  _isAddingItem ? 'Adding...' : 'Add Item',
                                 ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[600],
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Section 3: Items List
               if (_purchaseItems.isNotEmpty)
                 _buildSectionCard(
@@ -557,9 +602,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                   icon: Icons.list,
                   child: _buildItemsList(),
                 ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Section 4: Inventory Updates (Display Only)
               if (_purchaseItems.isNotEmpty)
                 _buildSectionCard(
@@ -567,27 +612,27 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                   icon: Icons.update,
                   child: _buildInventoryUpdatesInfo(),
                 ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Section 5: Payment
               _buildSectionCard(
                 title: 'Payment',
                 icon: Icons.payment,
                 child: _buildPaymentSection(),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Section 6: Notes
               _buildSectionCard(
                 title: 'Notes',
                 icon: Icons.note,
                 child: _buildNotesField(),
               ),
-              
+
               const SizedBox(height: 30),
-              
+
               // Buttons
               Row(
                 children: [
@@ -608,19 +653,26 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                               width: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(Colors.white),
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
                               ),
                             )
                           : const Text(
                               'Save Purchase',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: _isLoading ? null : () => context.pop(),
+                      onPressed: _isLoading
+                          ? null
+                          : () => context.go(AppRoutes.home),
                       style: OutlinedButton.styleFrom(
                         side: BorderSide(color: AppColors.textSecondary),
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -637,10 +689,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                 ],
               ),
             ],
-            ),
           ),
         ),
-      );
+      ),
+    );
   }
 
   Widget _buildSectionCard({
@@ -702,124 +754,131 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         SizedBox(
           height: 60,
           child: TextFormField(
-                  controller: _vendorSearchController,
-                  decoration: InputDecoration(
-                    labelText: 'Select Vendor *',
-                    hintText: 'Type to search vendors...',
-                    prefixIcon: const Icon(Icons.business, size: 20),
-                    suffixIcon: _selectedVendorId != null 
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () {
-                            setState(() {
-                              _selectedVendorId = null;
-                              _vendorSearchController.clear();
-                              _showVendorSuggestions = false;
-                              _selectedVendorIndex = -1;
-                            });
-                          },
-                        )
-                      : const Icon(Icons.arrow_drop_down, size: 20),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    labelStyle: const TextStyle(fontSize: 14),
-                  ),
-                  style: const TextStyle(fontSize: 14),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedVendorIndex = -1; // Reset selection when typing
-                    });
-                    _filterVendors(value);
-                  },
-                  onFieldSubmitted: (value) {
-                    if (_showVendorSuggestions && _filteredVendors.isNotEmpty) {
-                      final selectedVendor = _filteredVendors[_selectedVendorIndex >= 0 ? _selectedVendorIndex : 0];
-                      setState(() {
-                        _selectedVendorId = selectedVendor['vendorId'];
-                        _vendorSearchController.text = selectedVendor['vendorName'];
-                        _showVendorSuggestions = false;
-                        _selectedVendorIndex = -1;
-                      });
-                    }
-                  },
-                  onTap: () {
-                    if (_vendors.isNotEmpty) {
-                      setState(() {
-                        _filteredVendors = _vendors;
-                        _showVendorSuggestions = true;
-                        _selectedVendorIndex = -1;
-                      });
-                          _updateAddButtonState();
-                    }
-                  },
-                  validator: (value) {
-                    if (_selectedVendorId == null) {
-                      return 'Please select a vendor';
-                    }
-                    return null;
-                  },
-                ),
-          ),
-          // Suggestions dropdown
-          if (_showVendorSuggestions && _filteredVendors.isNotEmpty)
-            Container(
-              constraints: const BoxConstraints(maxHeight: 200),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.2),
-                    spreadRadius: 1,
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _filteredVendors.length,
-                itemBuilder: (context, index) {
-                  final vendor = _filteredVendors[index];
-                  final vendorName = vendor['vendorName']?.toString() ?? 'Unknown Vendor';
-                  
-                  return Container(
-                    color: index == _selectedVendorIndex 
-                        ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                    child: ListTile(
-                      dense: true,
-                      title: Text(
-                        vendorName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: index == _selectedVendorIndex 
-                              ? FontWeight.w500
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      onTap: () {
+            controller: _vendorSearchController,
+            decoration: InputDecoration(
+              labelText: 'Select Vendor *',
+              hintText: 'Type to search vendors...',
+              prefixIcon: const Icon(Icons.business, size: 20),
+              suffixIcon: _selectedVendorId != null
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
                         setState(() {
-                          _selectedVendorId = vendor['vendorId'];
-                          _vendorSearchController.text = vendorName;
+                          _selectedVendorId = null;
+                          _vendorSearchController.clear();
                           _showVendorSuggestions = false;
                           _selectedVendorIndex = -1;
                         });
-                        _updateAddButtonState();
                       },
-                    ),
-                  );
-                },
+                    )
+                  : const Icon(Icons.arrow_drop_down, size: 20),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              labelStyle: const TextStyle(fontSize: 14),
             ),
-        ],
-      );
+            style: const TextStyle(fontSize: 14),
+            onChanged: (value) {
+              setState(() {
+                _selectedVendorIndex = -1; // Reset selection when typing
+              });
+              _filterVendors(value);
+            },
+            onFieldSubmitted: (value) {
+              if (_showVendorSuggestions && _filteredVendors.isNotEmpty) {
+                final selectedVendor =
+                    _filteredVendors[_selectedVendorIndex >= 0
+                        ? _selectedVendorIndex
+                        : 0];
+                setState(() {
+                  _selectedVendorId = selectedVendor['vendorId'];
+                  _vendorSearchController.text = selectedVendor['vendorName'];
+                  _showVendorSuggestions = false;
+                  _selectedVendorIndex = -1;
+                });
+              }
+            },
+            onTap: () {
+              if (_vendors.isNotEmpty) {
+                setState(() {
+                  _filteredVendors = _vendors;
+                  _showVendorSuggestions = true;
+                  _selectedVendorIndex = -1;
+                });
+                _updateAddButtonState();
+              }
+            },
+            validator: (value) {
+              if (_selectedVendorId == null) {
+                return 'Please select a vendor';
+              }
+              return null;
+            },
+          ),
+        ),
+        // Suggestions dropdown
+        if (_showVendorSuggestions && _filteredVendors.isNotEmpty)
+          Container(
+            constraints: const BoxConstraints(maxHeight: 200),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.2),
+                  spreadRadius: 1,
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: _filteredVendors.length,
+              itemBuilder: (context, index) {
+                final vendor = _filteredVendors[index];
+                final vendorName =
+                    vendor['vendorName']?.toString() ?? 'Unknown Vendor';
+
+                return Container(
+                  color: index == _selectedVendorIndex
+                      ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  child: ListTile(
+                    dense: true,
+                    title: Text(
+                      vendorName,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: index == _selectedVendorIndex
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                      ),
+                    ),
+                    onTap: () {
+                      setState(() {
+                        _selectedVendorId = vendor['vendorId'];
+                        _vendorSearchController.text = vendorName;
+                        _showVendorSuggestions = false;
+                        _selectedVendorIndex = -1;
+                      });
+                      _updateAddButtonState();
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildVendorInfo() {
@@ -827,9 +886,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       (v) => v['vendorId'] == _selectedVendorId,
       orElse: () => {},
     );
-    
+
     if (vendor.isEmpty) return const SizedBox.shrink();
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -850,7 +909,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             Text(
               'Current Credit: BHD ${vendor['currentCredit'].toStringAsFixed(2)}',
               style: TextStyle(
-                color: vendor['currentCredit'] > 0 ? AppColors.accent1 : AppColors.primary,
+                color: vendor['currentCredit'] > 0
+                    ? AppColors.accent1
+                    : AppColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -863,24 +924,26 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     return SizedBox(
       height: 60,
       child: FormField<String>(
-            validator: (value) {
-              if (_selectedItemId == null) return 'Required';
-              return null;
+        validator: (value) {
+          if (_selectedItemId == null) return 'Required';
+          return null;
+        },
+        builder: (field) {
+          return Autocomplete<Map<String, dynamic>>(
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              final query = textEditingValue.text.toLowerCase().trim();
+              final matches = _inventoryItems.where((item) {
+                final id = (item['id'] ?? '').toString().toLowerCase();
+                final name = (item['name'] ?? '').toString().toLowerCase();
+                if (query.isEmpty) return true;
+                return id.contains(query) || name.contains(query);
+              });
+              return matches.take(15);
             },
-            builder: (field) {
-              return Autocomplete<Map<String, dynamic>>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  final query = textEditingValue.text.toLowerCase().trim();
-                  final matches = _inventoryItems.where((item) {
-                    final id = (item['id'] ?? '').toString().toLowerCase();
-                    final name = (item['name'] ?? '').toString().toLowerCase();
-                    if (query.isEmpty) return true;
-                    return id.contains(query) || name.contains(query);
-                  });
-                  return matches.take(15);
-                },
-                displayStringForOption: (option) => '${option['id']} - ${option['name']}',
-                fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+            displayStringForOption: (option) =>
+                '${option['id']} - ${option['name']}',
+            fieldViewBuilder:
+                (context, controller, focusNode, onFieldSubmitted) {
                   if (_itemFieldController == null) {
                     _itemFieldController = controller;
                     _itemFieldController!.addListener(_onItemTextChanged);
@@ -899,7 +962,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       labelStyle: const TextStyle(fontSize: 14),
                     ),
                     style: const TextStyle(fontSize: 14, color: Colors.black),
@@ -911,53 +977,59 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     },
                   );
                 },
-                onSelected: (selection) {
-                  if (selection['id'] == 'add_new_item') {
-                    _openAddNewItemDialog();
-                    return;
-                  }
-                  setState(() {
-                    _selectedItemId = selection['id'];
-                  });
-                  field.didChange(selection['id']);
-                  _updateAddButtonState();
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  final optionsList = options.toList(growable: false);
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 300, maxWidth: double.infinity),
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          shrinkWrap: true,
-                          itemCount: optionsList.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index < optionsList.length) {
-                              final option = optionsList[index];
-                              return ListTile(
-                                  title: Text(option['name']?.toString() ?? ''),
-                                  subtitle: Text(option['id']?.toString() ?? ''),
-                                  onTap: () => onSelected(option),
-                                );
-                            }
-                            // Add New Item tile at the end
-                            return ListTile(
-                              leading: const Icon(Icons.add),
-                              title: const Text('➕ Add New Item'),
-                              onTap: () => onSelected({'id': 'add_new_item', 'name': 'Add New Item'}),
-                            );
-                          },
-                        ),
-                      ),
+            onSelected: (selection) {
+              if (selection['id'] == 'add_new_item') {
+                _openAddNewItemDialog();
+                return;
+              }
+              setState(() {
+                _selectedItemId = selection['id'];
+              });
+              field.didChange(selection['id']);
+              _updateAddButtonState();
+            },
+            optionsViewBuilder: (context, onSelected, options) {
+              final optionsList = options.toList(growable: false);
+              return Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4.0,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(
+                      maxHeight: 300,
+                      maxWidth: double.infinity,
                     ),
-                  );
-                },
+                    child: ListView.builder(
+                      padding: EdgeInsets.zero,
+                      shrinkWrap: true,
+                      itemCount: optionsList.length + 1,
+                      itemBuilder: (context, index) {
+                        if (index < optionsList.length) {
+                          final option = optionsList[index];
+                          return ListTile(
+                            title: Text(option['name']?.toString() ?? ''),
+                            subtitle: Text(option['id']?.toString() ?? ''),
+                            onTap: () => onSelected(option),
+                          );
+                        }
+                        // Add New Item tile at the end
+                        return ListTile(
+                          leading: const Icon(Icons.add),
+                          title: const Text('➕ Add New Item'),
+                          onTap: () => onSelected({
+                            'id': 'add_new_item',
+                            'name': 'Add New Item',
+                          }),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               );
             },
-          ),
+          );
+        },
+      ),
     );
   }
 
@@ -969,10 +1041,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         decoration: InputDecoration(
           labelText: 'Quantity *',
           prefixIcon: const Icon(Icons.numbers, size: 20),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           labelStyle: const TextStyle(fontSize: 14),
         ),
         style: const TextStyle(fontSize: 14),
@@ -1004,7 +1077,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           onMaterialAdded: () async {
             // no-op; we'll reload after dialog returns
           },
-          existingCategories: _inventoryItems.map((e) => e['category']?.toString() ?? '').toList(),
+          existingCategories: _inventoryItems
+              .map((e) => e['category']?.toString() ?? '')
+              .toList(),
         ),
       );
 
@@ -1014,9 +1089,12 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         setState(() {
           _inventoryItems = items;
           _selectedItemId = result['id']?.toString();
-          
+
           // Auto-populate the unit cost field with the cost price from the new item
-          final unitCost = result['costPrice']?.toString() ?? result['unitCost']?.toString() ?? '0.0';
+          final unitCost =
+              result['costPrice']?.toString() ??
+              result['unitCost']?.toString() ??
+              '0.0';
           _unitCostController.text = unitCost;
         });
         _showSuccessSnackBar('New item "${result['name']}" added and selected');
@@ -1034,10 +1112,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         decoration: InputDecoration(
           labelText: 'Cost Price *',
           prefixIcon: const Icon(Icons.attach_money, size: 20),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           labelStyle: const TextStyle(fontSize: 14),
         ),
         style: const TextStyle(fontSize: 14),
@@ -1066,8 +1145,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   }
 
   Widget _buildItemsList() {
-    double grandTotal = _purchaseItems.fold(0.0, (sum, item) => sum + item['totalCost']);
-    
+    double grandTotal = _purchaseItems.fold(
+      0.0,
+      (sum, item) => sum + item['totalCost'],
+    );
+
     return Column(
       children: [
         ...List.generate(_purchaseItems.length, (index) {
@@ -1075,7 +1157,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           return Container(
             margin: const EdgeInsets.only(bottom: 8),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.textSecondary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.textSecondary.withValues(alpha: 0.3),
+              ),
               borderRadius: BorderRadius.circular(8),
               color: AppColors.background.withValues(alpha: 0.5),
             ),
@@ -1084,7 +1168,10 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                 backgroundColor: AppColors.primary,
                 child: Text(
                   '${index + 1}',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               title: Text(
@@ -1148,7 +1235,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1201,16 +1290,20 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: _isVATInclusive ? Colors.green[700] : Colors.grey[700],
+                          color: _isVATInclusive
+                              ? Colors.green[700]
+                              : Colors.grey[700],
                         ),
                       ),
                       Text(
-                        _isVATInclusive 
-                            ? 'Cost prices include 10% VAT' 
+                        _isVATInclusive
+                            ? 'Cost prices include 10% VAT'
                             : 'Cost prices exclude VAT',
                         style: TextStyle(
                           fontSize: 12,
-                          color: _isVATInclusive ? Colors.green[600] : Colors.grey[600],
+                          color: _isVATInclusive
+                              ? Colors.green[600]
+                              : Colors.grey[600],
                         ),
                       ),
                     ],
@@ -1231,8 +1324,8 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     ),
                     child: AnimatedAlign(
                       duration: const Duration(milliseconds: 200),
-                      alignment: _isVATInclusive 
-                          ? Alignment.centerRight 
+                      alignment: _isVATInclusive
+                          ? Alignment.centerRight
                           : Alignment.centerLeft,
                       child: Container(
                         width: 21,
@@ -1324,7 +1417,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.accent1.withValues(alpha: 0.1),
-              border: Border.all(color: AppColors.accent1.withValues(alpha: 0.3)),
+              border: Border.all(
+                color: AppColors.accent1.withValues(alpha: 0.3),
+              ),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Row(
@@ -1353,7 +1448,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         prefixIcon: const Icon(Icons.note, color: AppColors.primary),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.5)),
+          borderSide: BorderSide(
+            color: AppColors.textSecondary.withValues(alpha: 0.5),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
