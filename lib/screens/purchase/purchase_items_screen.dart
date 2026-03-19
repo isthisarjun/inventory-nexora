@@ -446,6 +446,14 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           );
         }
 
+        // If purchase is on credit, add the total to vendor's current credit
+        if (!_isPaid) {
+          final totalAmount = _purchaseItems.fold<double>(
+            0.0, (sum, item) => sum + (item['totalCost'] as double));
+          await _excelService.updateVendorCredit(
+            selectedVendor['vendorName'], totalAmount, 'add');
+        }
+
         _showSuccessSnackBar(
           'Purchase saved successfully! Updated ${_purchaseItems.length} items in inventory.',
         );
