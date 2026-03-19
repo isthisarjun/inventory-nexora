@@ -50,11 +50,42 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   // VAT state - default to VAT inclusive
   bool _isVATInclusive = true;
 
+  // Focus nodes for sequential Enter-key navigation
+  final FocusNode _vendorFocusNode = FocusNode();
+  FocusNode? _itemFocusNode;
+  final FocusNode _quantityFocusNode = FocusNode();
+  final FocusNode _unitCostFocusNode = FocusNode();
+
   @override
   void initState() {
     super.initState();
 
     HardwareKeyboard.instance.addHandler(_handleKeyEvent);
+
+    // Vendor dropdown: open on keyboard focus + arrow key navigation
+    _vendorFocusNode.addListener(_onVendorFocusChanged);
+    _vendorFocusNode.onKeyEvent = (FocusNode node, KeyEvent event) {
+      if (event is! KeyDownEvent) return KeyEventResult.ignored;
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        if (_filteredVendors.isNotEmpty) {
+          setState(() {
+            _showVendorSuggestions = true;
+            _selectedVendorIndex = (_selectedVendorIndex + 1)
+                .clamp(0, _filteredVendors.length - 1);
+          });
+        }
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        if (_filteredVendors.isNotEmpty && _selectedVendorIndex > 0) {
+          setState(() {
+            _selectedVendorIndex = _selectedVendorIndex - 1;
+          });
+        }
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    };
 
     // Generate sequential purchase ID
     _generateSequentialPurchaseId();
@@ -67,6 +98,13 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     });
     _unitCostController.addListener(() {
       _updateAddButtonState();
+    });
+
+    // Put keyboard focus on vendor field when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _vendorFocusNode.requestFocus();
+      }
     });
   }
 
@@ -84,6 +122,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
+    _vendorFocusNode.dispose();
+    _quantityFocusNode.dispose();
+    _unitCostFocusNode.dispose();
     _quantityController.dispose();
     _unitCostController.dispose();
     _notesController.dispose();
@@ -94,6 +135,24 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     _isAddEnabledNotifier.dispose();
 
     super.dispose();
+  }
+
+  void _onVendorFocusChanged() {
+    if (_vendorFocusNode.hasFocus && _vendors.isNotEmpty) {
+      setState(() {
+        _filteredVendors = _vendors;
+        _showVendorSuggestions = true;
+        _selectedVendorIndex = 0;
+      });
+    } else if (!_vendorFocusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted && !_vendorFocusNode.hasFocus) {
+          setState(() {
+            _showVendorSuggestions = false;
+          });
+        }
+      });
+    }
   }
 
   void _onItemTextChanged() {
@@ -125,6 +184,11 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _vendors = vendors;
         _inventoryItems = items;
         _filteredVendors = vendors; // Initialize filtered list
+        // Auto-open vendor dropdown once data is loaded
+        if (_vendorFocusNode.hasFocus && vendors.isNotEmpty) {
+          _showVendorSuggestions = true;
+          _selectedVendorIndex = 0;
+        }
       });
     } catch (e) {
       _showErrorSnackBar('Error loading data: $e');
@@ -138,8 +202,9 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
     setState(() {
       if (query.isEmpty) {
         _filteredVendors = _vendors;
-        _showVendorSuggestions = false;
-        _selectedVendorIndex = -1;
+        // Keep dropdown open when clearing text while field is focused
+        _showVendorSuggestions = _vendorFocusNode.hasFocus && _vendors.isNotEmpty;
+        _selectedVendorIndex = _showVendorSuggestions ? 0 : -1;
       } else {
         _filteredVendors = _vendors.where((vendor) {
           final vendorName =
@@ -303,6 +368,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         _unitCostController.clear();
       });
       _updateAddButtonState();
+      _itemFocusNode?.requestFocus();
 
       _showSuccessSnackBar('Item added to purchase list!');
     } catch (e) {
@@ -754,6 +820,8 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         SizedBox(
           height: 60,
           child: TextFormField(
+            focusNode: _vendorFocusNode,
+            autofocus: true,
             controller: _vendorSearchController,
             decoration: InputDecoration(
               labelText: 'Select Vendor *',
@@ -790,16 +858,33 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
             },
             onFieldSubmitted: (value) {
               if (_showVendorSuggestions && _filteredVendors.isNotEmpty) {
-                final selectedVendor =
-                    _filteredVendors[_selectedVendorIndex >= 0
-                        ? _selectedVendorIndex
-                        : 0];
+                // Dropdown already open: select highlighted vendor and advance
+                final selectedVendor = _filteredVendors[
+                    _selectedVendorIndex >= 0 ? _selectedVendorIndex : 0];
                 setState(() {
                   _selectedVendorId = selectedVendor['vendorId'];
                   _vendorSearchController.text = selectedVendor['vendorName'];
                   _showVendorSuggestions = false;
                   _selectedVendorIndex = -1;
                 });
+                _itemFocusNode?.requestFocus();
+              } else {
+                // Dropdown not open: first Enter opens it
+                final query = value.toLowerCase().trim();
+                final filtered = query.isEmpty
+                    ? _vendors
+                    : _vendors.where((v) {
+                        final name =
+                            v['vendorName']?.toString().toLowerCase() ?? '';
+                        return name.contains(query);
+                      }).toList();
+                if (filtered.isNotEmpty) {
+                  setState(() {
+                    _filteredVendors = filtered;
+                    _showVendorSuggestions = true;
+                    _selectedVendorIndex = 0;
+                  });
+                }
               }
             },
             onTap: () {
@@ -807,7 +892,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                 setState(() {
                   _filteredVendors = _vendors;
                   _showVendorSuggestions = true;
-                  _selectedVendorIndex = -1;
+                  _selectedVendorIndex = 0;
                 });
                 _updateAddButtonState();
               }
@@ -944,6 +1029,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                 '${option['id']} - ${option['name']}',
             fieldViewBuilder:
                 (context, controller, focusNode, onFieldSubmitted) {
+                  _itemFocusNode = focusNode;
                   if (_itemFieldController == null) {
                     _itemFieldController = controller;
                     _itemFieldController!.addListener(_onItemTextChanged);
@@ -987,6 +1073,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
               });
               field.didChange(selection['id']);
               _updateAddButtonState();
+              _quantityFocusNode.requestFocus();
             },
             optionsViewBuilder: (context, onSelected, options) {
               final optionsList = options.toList(growable: false);
@@ -999,27 +1086,43 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                       maxHeight: 300,
                       maxWidth: double.infinity,
                     ),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: optionsList.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index < optionsList.length) {
-                          final option = optionsList[index];
-                          return ListTile(
-                            title: Text(option['name']?.toString() ?? ''),
-                            subtitle: Text(option['id']?.toString() ?? ''),
-                            onTap: () => onSelected(option),
-                          );
-                        }
-                        // Add New Item tile at the end
-                        return ListTile(
-                          leading: const Icon(Icons.add),
-                          title: const Text('➕ Add New Item'),
-                          onTap: () => onSelected({
-                            'id': 'add_new_item',
-                            'name': 'Add New Item',
-                          }),
+                    child: Builder(
+                      builder: (innerContext) {
+                        final highlightedIndex = AutocompleteHighlightedOption.of(innerContext);
+                        return ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          itemCount: optionsList.length + 1,
+                          itemBuilder: (context, index) {
+                            if (index < optionsList.length) {
+                              final option = optionsList[index];
+                              final isHighlighted = index == highlightedIndex;
+                              return Container(
+                                color: isHighlighted
+                                    ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
+                                    : Colors.transparent,
+                                child: ListTile(
+                                  title: Text(
+                                    option['name']?.toString() ?? '',
+                                    style: TextStyle(
+                                      fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
+                                    ),
+                                  ),
+                                  subtitle: Text(option['id']?.toString() ?? ''),
+                                  onTap: () => onSelected(option),
+                                ),
+                              );
+                            }
+                            // Add New Item tile at the end
+                            return ListTile(
+                              leading: const Icon(Icons.add),
+                              title: const Text('➕ Add New Item'),
+                              onTap: () => onSelected({
+                                'id': 'add_new_item',
+                                'name': 'Add New Item',
+                              }),
+                            );
+                          },
                         );
                       },
                     ),
@@ -1038,6 +1141,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       height: 60,
       child: TextFormField(
         controller: _quantityController,
+        focusNode: _quantityFocusNode,
         decoration: InputDecoration(
           labelText: 'Quantity *',
           prefixIcon: const Icon(Icons.numbers, size: 20),
@@ -1053,6 +1157,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
         ],
+        onFieldSubmitted: (_) => _unitCostFocusNode.requestFocus(),
         validator: (value) {
           if (value == null || value.isEmpty) {
             return 'Required';
@@ -1109,6 +1214,7 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
       height: 60,
       child: TextFormField(
         controller: _unitCostController,
+        focusNode: _unitCostFocusNode,
         decoration: InputDecoration(
           labelText: 'Cost Price *',
           prefixIcon: const Icon(Icons.attach_money, size: 20),
