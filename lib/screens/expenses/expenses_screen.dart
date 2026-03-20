@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 // Removed unused imports: dart:io, dart:convert, path_provider
 import '../../services/excel_service.dart';
 
@@ -196,18 +197,13 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               ),
                               style: const TextStyle(fontSize: 14),
                               keyboardType: TextInputType.number,
-                              onChanged: (value) {
-                                if (includeVat && value.isNotEmpty) {
-                                  setDialogState(() {
-                                    final amount = double.tryParse(value) ?? 0.0;
-                                    final vatRate = double.tryParse(vatRateController.text) ?? 10.0;
-                                    calculatedVatAmount = amount * (vatRate / 100);
-                                  });
-                                }
-                              },
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               validator: (value) {
-                                if (value?.isEmpty ?? true) return 'Required';
-                                if (double.tryParse(value!) == null) return 'Invalid';
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter an amount';
+                                }
                                 return null;
                               },
                             ),
