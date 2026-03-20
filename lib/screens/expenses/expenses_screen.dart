@@ -113,12 +113,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
+              color: Colors.green[50], // Changed to green accents
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[300]!, width: 2),
+              border: Border.all(color: Colors.green[300]!, width: 2), // Updated border color
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.2),
+                  color: Colors.green.withOpacity(0.2), // Updated shadow color
                   spreadRadius: 3,
                   blurRadius: 10,
                   offset: const Offset(0, 3),
@@ -135,7 +135,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                       decoration: BoxDecoration(
-                        color: Colors.blue[600],
+                        color: Colors.green[600], // Updated header color
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Row(
@@ -147,7 +147,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Color.fromARGB(255, 0, 0, 0),
+                              color: Colors.white, // Updated text color
                             ),
                           ),
                         ],
@@ -432,7 +432,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                       }
                                     });
                                   },
-                                  activeThumbColor: Colors.blue[600],
+                                  activeColor: Colors.green[600], // Updated switch active color
                                 ),
                               ],
                             ),
@@ -480,24 +480,28 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                               border: Border.all(color: Colors.blue[300]!),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'VAT Amount',
-                                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'BHD ${calculatedVatAmount.toStringAsFixed(3)}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[700],
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'VAT Amount',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'BHD ${calculatedVatAmount.toStringAsFixed(3)}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -560,7 +564,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           icon: const Icon(Icons.save, size: 18),
                           label: const Text('Save'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
+                            backgroundColor: Colors.green[600], // Updated to green
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           ),
