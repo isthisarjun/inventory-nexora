@@ -446,10 +446,13 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
           );
         }
 
-        // If purchase is on credit, add the total to vendor's current credit
+        // If purchase is on credit, add the VAT-adjusted total to vendor's current credit
         if (!_isPaid) {
-          final totalAmount = _purchaseItems.fold<double>(
+          final subtotal = _purchaseItems.fold<double>(
             0.0, (sum, item) => sum + (item['totalCost'] as double));
+          final totalAmount = _isVATInclusive
+              ? subtotal
+              : subtotal + (subtotal * 0.10);
           await _excelService.updateVendorCredit(
             selectedVendor['vendorName'], totalAmount, 'add');
         }
@@ -1259,10 +1262,17 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
   }
 
   Widget _buildItemsList() {
-    double grandTotal = _purchaseItems.fold(
+    final double subtotal = _purchaseItems.fold(
       0.0,
-      (sum, item) => sum + item['totalCost'],
+      (sum, item) => sum + (item['totalCost'] as double),
     );
+
+    final double vatAmount = _isVATInclusive
+        ? subtotal - (subtotal / 1.10) // VAT already inside the price
+        : subtotal * 0.10;             // VAT added on top
+    final double grandTotal = _isVATInclusive
+        ? subtotal              // VAT is already included
+        : subtotal + vatAmount; // Add VAT on top
 
     return Column(
       children: [
@@ -1299,27 +1309,24 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     'Qty: ${item['quantity']} ${item['unit']} × BHD ${item['unitCost'].toStringAsFixed(2)}',
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),
-                  // Only show VAT information when global VAT toggle is ON
-                  if (_isVATInclusive) ...[
-                    if (item['isVATInclusive'] == true)
-                      Text(
-                        'VAT Inclusive (Actual: BHD ${item['actualCost'].toStringAsFixed(2)}, VAT: BHD ${item['vatAmount'].toStringAsFixed(2)})',
-                        style: TextStyle(
-                          color: Colors.green[600],
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      )
-                    else
-                      Text(
-                        'VAT Exclusive',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
+                  if (_isVATInclusive)
+                    Text(
+                      'VAT Inclusive (Actual: BHD ${item['actualCost'].toStringAsFixed(2)}, VAT: BHD ${item['vatAmount'].toStringAsFixed(2)})',
+                      style: TextStyle(
+                        color: Colors.green[600],
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
-                  ],
+                    )
+                  else
+                    Text(
+                      'VAT will be added at total',
+                      style: TextStyle(
+                        color: Colors.orange[600],
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                 ],
               ),
               trailing: Row(
@@ -1344,6 +1351,140 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
         }),
         if (_purchaseItems.isNotEmpty) ...[
           const Divider(thickness: 2, color: AppColors.primary),
+          // VAT Toggle — sits above the grand total
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _isVATInclusive ? Colors.green[50] : Colors.orange[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _isVATInclusive ? Colors.green[300]! : Colors.orange[300]!,
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  _isVATInclusive
+                      ? Icons.check_circle
+                      : Icons.add_circle_outline,
+                  color: _isVATInclusive
+                      ? Colors.green[600]
+                      : Colors.orange[600],
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _isVATInclusive ? 'VAT Inclusive' : 'VAT Exclusive',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: _isVATInclusive
+                              ? Colors.green[700]
+                              : Colors.orange[700],
+                        ),
+                      ),
+                      Text(
+                        _isVATInclusive
+                            ? 'Cost prices already include 10% VAT'
+                            : 'Cost prices exclude VAT — 10% will be added',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _isVATInclusive
+                              ? Colors.green[600]
+                              : Colors.orange[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isVATInclusive = !_isVATInclusive;
+                    });
+                  },
+                  child: Container(
+                    width: 50,
+                    height: 25,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      color: _isVATInclusive
+                          ? Colors.green
+                          : Colors.orange[400],
+                    ),
+                    child: AnimatedAlign(
+                      duration: const Duration(milliseconds: 200),
+                      alignment: _isVATInclusive
+                          ? Alignment.centerRight
+                          : Alignment.centerLeft,
+                      child: Container(
+                        width: 21,
+                        height: 21,
+                        margin: const EdgeInsets.all(2),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Subtotal row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Subtotal:',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+                Text(
+                  'BHD ${subtotal.toStringAsFixed(2)}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                ),
+              ],
+            ),
+          ),
+          if (!_isVATInclusive) ...[
+            const SizedBox(height: 4),
+            // VAT breakdown row — only shown when VAT exclusive
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'VAT (10%, added):',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    '+ BHD ${vatAmount.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.orange[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          // Grand Total
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1370,87 +1511,6 @@ class _PurchaseItemsScreenState extends State<PurchaseItemsScreen> {
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          // VAT Toggle
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: _isVATInclusive ? Colors.green[50] : Colors.grey[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: _isVATInclusive ? Colors.green[300]! : Colors.grey[300]!,
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  _isVATInclusive ? Icons.check_circle : Icons.cancel,
-                  color: _isVATInclusive ? Colors.green[600] : Colors.grey[600],
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'VAT Inclusive',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: _isVATInclusive
-                              ? Colors.green[700]
-                              : Colors.grey[700],
-                        ),
-                      ),
-                      Text(
-                        _isVATInclusive
-                            ? 'Cost prices include 10% VAT'
-                            : 'Cost prices exclude VAT',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _isVATInclusive
-                              ? Colors.green[600]
-                              : Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _isVATInclusive = !_isVATInclusive;
-                    });
-                  },
-                  child: Container(
-                    width: 50,
-                    height: 25,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(15),
-                      color: _isVATInclusive ? Colors.green : Colors.grey[400],
-                    ),
-                    child: AnimatedAlign(
-                      duration: const Duration(milliseconds: 200),
-                      alignment: _isVATInclusive
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
-                      child: Container(
-                        width: 21,
-                        height: 21,
-                        margin: const EdgeInsets.all(2),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ],
