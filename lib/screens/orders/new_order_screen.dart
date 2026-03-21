@@ -15,7 +15,9 @@ class OrderItem {
   final FocusNode priceFocus = FocusNode();
   
   Map<String, dynamic>? selectedItem;
-  
+  final GlobalKey<FormFieldState<Map<String, dynamic>>> itemFormFieldKey =
+      GlobalKey<FormFieldState<Map<String, dynamic>>>();
+
   double get totalPrice {
     final quantity = double.tryParse(quantityController.text) ?? 0.0;
     final unitPrice = double.tryParse(unitPriceController.text) ?? 0.0;
@@ -1317,6 +1319,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     _orderItems[0].quantityController.clear();
     _orderItems[0].unitPriceController.clear();
     _orderItems[0].selectedItem = null;
+    _orderItems[0].itemFormFieldKey.currentState?.didChange(null);
     
     _updateCalculations();
   }
@@ -1378,15 +1381,16 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     const SizedBox(height: 16),
                     
                     // Item Details Section
-                    _buildSectionHeader('Item Details'),
-                    const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(child: Container()),
+                        _buildSectionHeader('Item Details'),
                         IconButton(
-                          icon: const Icon(Icons.refresh),
+                          icon: const Icon(Icons.refresh, size: 18),
                           onPressed: _loadInventoryItems,
                           tooltip: 'Refresh inventory items',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                         ),
                       ],
                     ),
@@ -1611,54 +1615,111 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                         ),
                       ),
                     
-                    // Item selection dropdown
+                    // Item selection — searchable
                     Expanded(
                       flex: 2,
-                          child: DropdownButtonFormField<Map<String, dynamic>>(
-                            // Fix 1: Use reactive `value` instead of `initialValue`
-                            // so the dropdown updates when selectedItem changes via setState.
-                            value: orderItem.selectedItem != null &&
-                                    _inventoryItems.any((i) => i['id'] == orderItem.selectedItem!['id'])
-                                ? _inventoryItems.firstWhere((i) => i['id'] == orderItem.selectedItem!['id'])
-                                : orderItem.selectedItem,
-                            focusNode: orderItem.itemDropdownFocus,
-                            decoration: InputDecoration(
-                              labelText: 'Item *',
-                              hintText: 'Choose item',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                              prefixIcon: const Icon(Icons.inventory, size: 16),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              isDense: true,
-                              filled: true,
-                              fillColor: const Color(0xFFEEEEEE),
-                            ),
-                          items: [
-                            // Existing inventory items
-                            ..._inventoryItems.map((item) {
-                              final name = item['name'].toString();
-                              
-                              return DropdownMenuItem<Map<String, dynamic>>(
-                                value: item,
-                                child: Text(
-                                  name,
-                                  style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }),
-                          ],
-                          onChanged: (value) => _onItemSelected(value, index),
-                          validator: (value) {
-                            if (value == null) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
-                          isExpanded: true,
-                          menuMaxHeight: 200,
-                          style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black),
-                          ),
-                        ),
+                      child: FormField<Map<String, dynamic>>(
+                        key: orderItem.itemFormFieldKey,
+                        initialValue: orderItem.selectedItem,
+                        validator: (value) => value == null ? 'Required' : null,
+                        builder: (formFieldState) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              RawAutocomplete<Map<String, dynamic>>(
+                                focusNode: orderItem.itemDropdownFocus,
+                                textEditingController: orderItem.itemNameController,
+                                optionsBuilder: (textEditingValue) {
+                                  final query = textEditingValue.text.toLowerCase().trim();
+                                  if (query.isEmpty) return const Iterable.empty();
+                                  return _inventoryItems.where((item) =>
+                                      item['name'].toString().toLowerCase().contains(query));
+                                },
+                                displayStringForOption: (item) => item['name'].toString(),
+                                fieldViewBuilder: (context, textController, focusNode, onFieldSubmitted) {
+                                  return TextFormField(
+                                    controller: textController,
+                                    focusNode: focusNode,
+                                    decoration: InputDecoration(
+                                      labelText: 'Item *',
+                                      hintText: 'Type to search...',
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                                      focusedBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                        borderSide: const BorderSide(color: Colors.green, width: 2),
+                                      ),
+                                      errorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                        borderSide: const BorderSide(color: Colors.red),
+                                      ),
+                                      focusedErrorBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                                      ),
+                                      prefixIcon: const Icon(Icons.inventory, size: 16),
+                                      suffixIcon: const Icon(Icons.search, size: 14, color: Colors.grey),
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: const Color(0xFFEEEEEE),
+                                      errorText: formFieldState.errorText,
+                                    ),
+                                    style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic),
+                                    onChanged: (value) {
+                                      if (value.isEmpty) {
+                                        formFieldState.didChange(null);
+                                        setState(() => _orderItems[index].selectedItem = null);
+                                        _updateCalculations();
+                                      }
+                                    },
+                                    onFieldSubmitted: (_) => _focusNextField(orderItem.itemDropdownFocus),
+                                  );
+                                },
+                                onSelected: (item) {
+                                  formFieldState.didChange(item);
+                                  _onItemSelected(item, index);
+                                },
+                                optionsViewBuilder: (context, onSelected, options) {
+                                  return Align(
+                                    alignment: Alignment.topLeft,
+                                    child: Material(
+                                      elevation: 4,
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(maxHeight: 220),
+                                        child: ListView.builder(
+                                          shrinkWrap: true,
+                                          padding: EdgeInsets.zero,
+                                          itemCount: options.length,
+                                          itemBuilder: (context, optionIndex) {
+                                            final option = options.elementAt(optionIndex);
+                                            final stock = double.tryParse(option['currentStock'].toString()) ?? 0.0;
+                                            final price = double.tryParse(option['sellingPrice'].toString()) ?? 0.0;
+                                            return ListTile(
+                                              dense: true,
+                                              title: Text(
+                                                option['name'].toString(),
+                                                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, fontWeight: FontWeight.w500),
+                                              ),
+                                              subtitle: Text(
+                                                'Stock: ${stock.toStringAsFixed(0)}  |  BHD ${price.toStringAsFixed(3)}',
+                                                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                              ),
+                                              onTap: () => onSelected(option),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
                       
                       // Quantity field
                       Expanded(

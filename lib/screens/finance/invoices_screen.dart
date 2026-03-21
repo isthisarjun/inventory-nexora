@@ -33,7 +33,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     });
 
     try {
-      final allOrders = await _excelService.loadOrdersFromExcel();
+      final allOrders = await _excelService.getGroupedSalesFromExcel();
       final allPurchases = await _excelService.getGroupedPurchaseHistory();
       
       // Sort by order date (newest first)
@@ -62,20 +62,28 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
 
   List<Map<String, dynamic>> get _filteredOrders {
     final currentList = _invoiceType == 'sales' ? _orders : _purchases;
+    final baseList = _invoiceType == 'sales'
+        ? currentList.where((invoice) =>
+            (invoice['paymentStatus']?.toString().toLowerCase() ?? '') == 'paid').toList()
+        : currentList;
     if (_searchQuery.isEmpty) {
-      return currentList;
+      return baseList;
     }
-    return currentList.where((invoice) {
+    return baseList.where((invoice) {
       final name = _getInvoiceName(invoice).toLowerCase();
       final invoiceId = _getInvoiceId(invoice).toLowerCase();
       final items = invoice['items']?.toString().toLowerCase() ?? '';
       final query = _searchQuery.toLowerCase();
-      
-      return name.contains(query) || 
-             invoiceId.contains(query) || 
+
+      return name.contains(query) ||
+             invoiceId.contains(query) ||
              items.contains(query);
     }).toList();
   }
+
+  int get _paidSalesCount => _orders
+      .where((o) => (o['paymentStatus']?.toString().toLowerCase() ?? '') == 'paid')
+      .length;
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +113,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                   children: [
                     const Icon(Icons.shopping_cart),
                     const SizedBox(width: 8),
-                    Text('Sales (${_orders.length})'),
+                    Text('Sales ($_paidSalesCount)'),
                   ],
                 ),
               ),
