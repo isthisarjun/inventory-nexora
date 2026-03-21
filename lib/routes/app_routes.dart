@@ -18,6 +18,7 @@ import 'package:tailor_v3/screens/accounts/accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/supplier_accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/all_accounts_screen.dart';
 import 'package:tailor_v3/screens/accounts/bank_accounts_screen.dart';
+import 'package:tailor_v3/screens/accounts/day_book_screen.dart';
 
 import 'package:tailor_v3/screens/transactions/transactions_screen.dart';
 import 'package:tailor_v3/screens/expenses/expenses_screen.dart';
@@ -63,6 +64,7 @@ class AppRoutes {
   static const String salesLedger = '/ledger/sales';
 
   static const String invoiceDetails = '/invoice-details';
+  static const String dayBook = '/day-book';
   
   // Error routes
   static const String notFound = '/404';
@@ -247,6 +249,11 @@ class AppRouter {
           path: AppRoutes.returnedItems,
           name: 'returnedItems',
           builder: (context, state) => const ReturnedItemsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.dayBook,
+          name: 'dayBook',
+          builder: (context, state) => const DayBookScreen(),
         ),
         GoRoute(
           path: AppRoutes.vatFiling,

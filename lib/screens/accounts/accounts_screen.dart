@@ -318,6 +318,15 @@ class _AccountsScreenState extends State<AccountsScreen> {
                     onTap: () => context.go('/reports'),
                   ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildQuickActionTile(
+                    title: 'Day Book',
+                    icon: Icons.menu_book,
+                    color: Colors.teal,
+                    onTap: () => context.go('/day-book'),
+                  ),
+                ),
               ],
             ),
             

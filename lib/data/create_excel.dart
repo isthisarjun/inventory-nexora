@@ -14,5 +14,5 @@ void createInventoryCategoryManagementExcel() {
     ..createSync(recursive: true)
     ..writeAsBytesSync(excel.encode()!);
 
-  print('Excel file created at $outputPath');
+   ('Excel file created at $outputPath');
 }

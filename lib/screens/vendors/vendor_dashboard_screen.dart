@@ -128,7 +128,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       autofocus: true,
       onKey: (RawKeyEvent event) {
         if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          context.go(AppRoutes.home);
+          context.go(AppRoutes.vendors);
         }
       },
       child: Scaffold(

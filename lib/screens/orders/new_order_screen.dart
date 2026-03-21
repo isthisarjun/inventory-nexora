@@ -288,59 +288,118 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   // Show dialog to ask if user wants to add a new item
   Future<void> _showAddItemDialog() async {
+    // Default selection: false = Cancel (proceed to payment), true = Yes (add item)
+    bool selected = false;
+    final FocusNode dialogFocusNode = FocusNode();
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            "Add New Item",
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          content: const Text(
-            "Do you want to add another item to this order?",
-            style: TextStyle(fontSize: 16),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[600],
-                foregroundColor: Colors.white,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            // Auto-request focus so keyboard events are captured immediately
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              dialogFocusNode.requestFocus();
+            });
+
+            return KeyboardListener(
+              focusNode: dialogFocusNode,
+              onKeyEvent: (event) {
+                if (event is! KeyDownEvent) return;
+                if (event.logicalKey == LogicalKeyboardKey.arrowLeft ||
+                    event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                  setDialogState(() => selected = !selected);
+                } else if (event.logicalKey == LogicalKeyboardKey.enter ||
+                    event.logicalKey == LogicalKeyboardKey.space) {
+                  Navigator.of(context).pop(selected);
+                }
+              },
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                title: const Text(
+                  "Add New Item",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                content: const Text(
+                  "Do you want to add another item to this order?",
+                  style: TextStyle(fontSize: 16),
+                ),
+                actions: [
+                  // Cancel button — highlighted when selected == false
+                  GestureDetector(
+                    onTap: () {
+                      setDialogState(() => selected = false);
+                      Navigator.of(context).pop(false);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: !selected ? Colors.green[600] : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: !selected ? Colors.green[600]! : Colors.grey[400]!,
+                          width: !selected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(
+                          color: !selected ? Colors.white : Colors.grey[600],
+                          fontWeight: !selected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Yes button — highlighted when selected == true
+                  GestureDetector(
+                    onTap: () {
+                      setDialogState(() => selected = true);
+                      Navigator.of(context).pop(true);
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? Colors.green[600] : Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: selected ? Colors.green[600]! : Colors.grey[400]!,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        "Yes",
+                        style: TextStyle(
+                          color: selected ? Colors.white : Colors.grey[600],
+                          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              child: const Text("Cancel"),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: Colors.green[600]!),
-              ),
-              child: Text(
-                "Yes",
-                style: TextStyle(color: Colors.green[600]),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
+
+    dialogFocusNode.dispose();
 
     if (result == true) {
       // User wants to add a new item
       _addOrderItem();
     } else {
-      // User chose Cancel - focus the Create Order button
-      // We'll handle this in the action buttons section
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        FocusScope.of(context).requestFocus(_createOrderButtonFocus);
-      });
+      // User chose Cancel — immediately open the payment dialog
+      await _showPaymentDialog();
     }
   }
 
