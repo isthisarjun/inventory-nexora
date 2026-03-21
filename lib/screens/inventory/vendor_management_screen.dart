@@ -84,7 +84,15 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return RawKeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+          context.go('/home');
+        }
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Vendors'),
         backgroundColor: Theme.of(context).primaryColor,
@@ -306,6 +314,7 @@ class _VendorManagementScreenState extends State<VendorManagementScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
       ),
+    ),
     );
   }
 

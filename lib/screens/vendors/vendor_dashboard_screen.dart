@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../routes/app_routes.dart';
 import '../../services/excel_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/simple_navigation.dart';
@@ -127,8 +128,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       autofocus: true,
       onKey: (RawKeyEvent event) {
         if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
-          print('🔑 ESC pressed in Vendor Dashboard');
-          NavigationService.handleEscapeKey(context);
+          context.go(AppRoutes.home);
         }
       },
       child: Scaffold(
